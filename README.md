@@ -79,6 +79,10 @@ python scripts/fetch_librispeech_holdout.py
 
 # 6. Run selection-bias-free held-out evaluation (15 pairs, target layer TCN.TCN.9.conv1d fixed)
 python scripts/evaluate_multi_pair_gradcam.py --librispeech-root data/librispeech_holdout --num-pairs 15 --seed-offset 2000 --csv-output results/librispeech_gradcam/holdout_results.csv --summary-output results/librispeech_gradcam/holdout_summary.json --plot-output results/librispeech_gradcam/holdout_paired_comparison_plot.png
+
+# 7. Fetch 130 NEW speakers from train-clean-100 (zero overlap) and run full-scale (N=100) validation
+python scripts/fetch_librispeech_fullscale.py --num-speakers 130 --source parquet
+python scripts/evaluate_fullscale_gradcam.py --device cpu --target-pairs 100
 ```
 
 This pipeline will:
@@ -86,6 +90,7 @@ This pipeline will:
 2. Quantitatively score all 24 TCN conv1d candidate layers using a non-monotonic entropy penalty and select the optimal layer (`TCN.TCN.9.conv1d`).
 3. Fetch a completely disjoint set of 30 new speakers (15 pairs) from LibriSpeech `validation` (dev-clean) with zero speaker overlap.
 4. Evaluate Grad-CAM across both sets and report selection-set, selection-bias-free held-out, and pooled aggregate statistics ($N = 35$ total pairs).
+5. Extend the pool with 130 additional speakers from LibriSpeech `train-clean-100` (guaranteed zero overlap with the 70 already used), reaching $N = 100$ pairs across 200 distinct speakers, and re-run the core validation with gender and pitch (F0) subgroup breakdowns.
 
 ## Methodology
 
@@ -237,6 +242,32 @@ VAD head, and the wide standard deviation ($\pm0.217$) means this varies substan
 Full per-instance results and thresholds: [vad_alignment_results.csv](results/vad_alignment/vad_alignment_results.csv),
 [vad_alignment_summary.json](results/vad_alignment/vad_alignment_summary.json).
 
+## Full-scale validation (N = 100 pairs, 200 speakers)
+
+This is Part 4: scaling the core validation from $N=35$ to $N=100$ pairs (200 distinct speakers) with a gender and pitch subgroup breakdown. It builds **on top of** the existing 35 pairs (which are re-loaded unchanged from their saved CSVs — same speakers, same utterances) and adds 65 new pairs from LibriSpeech `train-clean-100`.
+
+**Diversity metadata methodology:**
+- **Gender**: joined from the LibriSpeech corpus's `SPEAKERS.TXT` (`ID | SEX | SUBSET | MINUTES | NAME`). OpenSLR serves this file only inside a subset archive (fetching it directly returns 404), so it is read from the locally extracted corpus — see [data/speaker_meta.py](data/speaker_meta.py). All 200 speakers resolved a gender label; the full pool is balanced at 98 M / 102 F.
+- **Pitch**: per-speaker mean F0 (Hz) computed with `librosa.pyin` over the speaker's utterance (voiced frames only), then split into tertiles across the 200 speakers. Tertile edges: low $\le 128.8$ Hz, mid $128.8$–$189.9$ Hz, high $> 189.9$ Hz.
+
+Re-running the finalized single-layer CAM (`TCN.TCN.9.conv1d`, VAD-logit target) at $N=100$ pairs:
+
+| Group | $N$ Pairs | Real Speaker-vs-Speaker MAE | Real-vs-Random Control MAE | Wilcoxon $W$ | $p$-value | Rank-Biserial $r$ |
+|---|---|---|---|---|---|---|
+| **Overall (all 100)** | $100$ | $0.233 \pm 0.091$ | $0.416 \pm 0.051$ | $106.0$ | $9.0\times10^{-17}$ | $0.958$ |
+| Gender: F/F | $24$ | $0.226 \pm 0.099$ | $0.411 \pm 0.051$ | $8.0$ | $3.0\times10^{-6}$ | $0.947$ |
+| Gender: M/M | $22$ | $0.273 \pm 0.085$ | $0.416 \pm 0.054$ | $10.0$ | $2.1\times10^{-5}$ | $0.921$ |
+| Gender: mixed (F/M) | $54$ | $0.220 \pm 0.085$ | $0.418 \pm 0.050$ | $23.0$ | $5.8\times10^{-10}$ | $0.969$ |
+| Pitch: low | $32$ | $0.260 \pm 0.089$ | $0.409 \pm 0.047$ | $16.0$ | $7.9\times10^{-8}$ | $0.939$ |
+| Pitch: mid | $31$ | $0.228 \pm 0.091$ | $0.429 \pm 0.047$ | $6.0$ | $1.3\times10^{-8}$ | $0.976$ |
+| Pitch: high | $37$ | $0.214 \pm 0.086$ | $0.410 \pm 0.056$ | $14.0$ | $1.6\times10^{-9}$ | $0.960$ |
+
+**The finding holds consistently across every subgroup.** At $N=100$ the core effect — real speaker-vs-speaker CAMs are far more self-similar than a real-vs-random control — remains highly statistically significant ($p < 10^{-16}$ overall, $p < 3\times10^{-5}$ in every subgroup) with a large effect size ($r \ge 0.92$) throughout. Real MAE is slightly higher (worse) for same-gender M/M pairs than for F/F or mixed pairs, and decreases monotonically from the low to the high pitch tertile — i.e. the model's attention is somewhat *more* speaker-discriminative for higher-pitched voices — but the effect never disappears in any subgroup.
+
+Full per-pair results: [results/fullscale/fullscale_results.csv](results/fullscale/fullscale_results.csv), [results/fullscale/fullscale_summary.json](results/fullscale/fullscale_summary.json), per-speaker F0 cache: [results/fullscale/speaker_f0.json](results/fullscale/speaker_f0.json). Scripts: [scripts/fetch_librispeech_fullscale.py](scripts/fetch_librispeech_fullscale.py), [scripts/evaluate_fullscale_gradcam.py](scripts/evaluate_fullscale_gradcam.py).
+
+**Scope note:** LibriSpeech carries **no accent labels**, so this scaling addresses statistical power, gender balance, and pitch diversity — **not** accent robustness. That remains an open next step (see Limitations).
+
 ## Robustness to noise and reverberation
 
 All prior results above were validated on **clean** mixtures only. This section re-runs the same 35 pooled pairs
@@ -294,6 +325,7 @@ condition, plus [robustness_summary.json](results/robustness/robustness_summary.
 
 ## Limitations / Next Steps
 
-- **Sample Size & Diversity**: $N = 35$ pairs across 70 distinct speakers remains modest for full generalization claims, and all mixtures come from LibriSpeech `test-clean`/`dev-clean`, which carry no accent labels. Noise and reverberation robustness **have** been tested — see [Robustness to noise and reverberation](#robustness-to-noise-and-reverberation): MAE-discriminability holds under noise and reverb, while VAD-F1 alignment degrades specifically under noise (not reverb). The noise proxy is a babble-sum of leftover LibriSpeech utterances, not a real ambient-noise corpus such as [WHAM!](http://wham.whisper.ai/), and the VAD-alignment reference is Silero VAD output, not hand-labeled ground truth.
-- **Single Target Layer**: Multi-pair and held-out validations fix the target layer to `TCN.TCN.9.conv1d` (the layer selected via Part A's ablation). A multi-layer ensemble **was** evaluated and explicitly rejected — see [Multi-layer ensemble vs. single-layer](#multi-layer-ensemble-vs-single-layer-tested-not-adopted): it did not clearly beat the single layer, so it was not adopted rather than left untested.
+- **Accent diversity (genuinely open)**: LibriSpeech carries no accent labels, so even the full-scale ($N=100$) run cannot measure accent robustness. This requires a different, accent-labeled corpus (e.g. Common Voice, VCTK) as a distinct next step.
+- **Single Target Layer**: Multi-pair, held-out, and full-scale validations fix the target layer to `TCN.TCN.9.conv1d` (the layer selected via Part A's ablation). A multi-layer ensemble **was** evaluated and explicitly rejected — see [Multi-layer ensemble vs. single-layer](#multi-layer-ensemble-vs-single-layer-tested-not-adopted): it did not clearly beat the single layer, so it was not adopted rather than left untested.
+- **Noise / reverberation**: robustness **has** been tested — see [Robustness to noise and reverberation](#robustness-to-noise-and-reverberation): MAE-discriminability holds under noise and reverb, while VAD-F1 alignment degrades specifically under noise (not reverb). The noise proxy is a babble-sum of leftover LibriSpeech utterances, not a real ambient-noise corpus such as [WHAM!](http://wham.whisper.ai/), and the VAD-alignment reference is Silero VAD output, not hand-labeled ground truth.
 - **CPU Execution**: Verification and statistical benchmarks were conducted on CPU (`--device cpu`). GPU execution is supported via `--device cuda`.

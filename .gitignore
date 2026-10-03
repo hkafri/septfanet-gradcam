@@ -18,6 +18,9 @@ weights/*.pth
 data/librispeech_samples/
 data/librispeech_holdout/
 data/librispeech_torchaudio_download/
+data/librispeech_fullscale/
+data/librispeech_trainclean100_parquet/
+data/librispeech_trainclean100/
 
 *.log
 .DS_Store
