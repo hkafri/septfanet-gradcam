@@ -3,6 +3,12 @@
 Grad-CAM interpretability for [Sep-TFAnet-VAD](https://github.com/MordehayM/Sep-TFAnet-VAD), a PyTorch
 speaker-separation/VAD network — adapted from image-based Grad-CAM and validated on real LibriSpeech audio.
 
+The analysis shows the Grad-CAM maps carry **measurable non-random structure that differs between speakers**
+(statistically significant, validated at N=100 pairs), **but** that structure **does not demonstrably align with
+true voice-activity timing** any better than a naive chance baseline (see
+[VAD ground-truth alignment](#vad-ground-truth-alignment-iou--f1)). These are two separate, independent findings —
+one holds, one does not — and this README reports both honestly.
+
 ## Attribution
 
 - **Base network and weights**: [MordehayM/Sep-TFAnet-VAD](https://github.com/MordehayM/Sep-TFAnet-VAD). This repo
@@ -242,6 +248,18 @@ $F1 = 0.522 \pm 0.217$ — **about 55.6% of the network's own VAD-prediction F1 
 **below the matched chance baseline**. The Grad-CAM map is therefore useful as an explanation of which regions
 drive a decision, not as a substitute VAD predictor.
 
+**Two independent claims about the CAM — do not conflate them:**
+
+1. The **MAE-vs-random-noise** result (validated at $N=100$ pairs, [Full-scale validation](#full-scale-validation-n--100-pairs-200-speakers))
+   shows the CAM has genuine, non-random structure that differs between speakers. This claim **holds**.
+2. The **VAD-ground-truth-alignment** result (this section) shows that this structure's specific temporal pattern
+   does **not** align with true voice-activity timing any better than a naive chance baseline. This claim **does
+   not hold**.
+
+These are different, independent questions about the CAM — one measures whether the attention maps are speaker-
+specific at all, the other whether their timing matches actual voice activity. Disproving the second does not
+invalidate the first, and vice versa.
+
 Full per-instance results and thresholds: [vad_alignment_results.csv](results/vad_alignment/vad_alignment_results.csv),
 [vad_alignment_summary.json](results/vad_alignment/vad_alignment_summary.json).
 
@@ -328,6 +346,10 @@ condition, plus [robustness_summary.json](results/robustness/robustness_summary.
 
 ## Limitations / Next Steps
 
+- **Grad-CAM does not demonstrably align with ground-truth voice-activity timing** — the CAM's best-F1 ($0.522$)
+  does not exceed a class-balance-matched chance baseline ($F1 \approx 0.815$) against the same Silero-VAD
+  reference. This is a genuine negative result, not yet resolved. See
+  [VAD ground-truth alignment](#vad-ground-truth-alignment-iou--f1) for the full numbers.
 - **Accent diversity (genuinely open)**: LibriSpeech carries no accent labels, so even the full-scale ($N=100$) run cannot measure accent robustness. This requires a different, accent-labeled corpus (e.g. Common Voice, VCTK) as a distinct next step.
 - **Single Target Layer**: Multi-pair, held-out, and full-scale validations fix the target layer to `TCN.TCN.9.conv1d` (the layer selected via Part A's ablation). A multi-layer ensemble **was** evaluated and explicitly rejected — see [Multi-layer ensemble vs. single-layer](#multi-layer-ensemble-vs-single-layer-tested-not-adopted): it did not clearly beat the single layer, so it was not adopted rather than left untested.
 - **Noise / reverberation**: robustness **has** been tested — see [Robustness to noise and reverberation](#robustness-to-noise-and-reverberation): MAE-discriminability holds under noise and reverb, while VAD-F1 alignment degrades specifically under noise (not reverb). The noise proxy is a babble-sum of leftover LibriSpeech utterances, not a real ambient-noise corpus such as [WHAM!](http://wham.whisper.ai/), and the VAD-alignment reference is Silero VAD output, not hand-labeled ground truth.
