@@ -96,7 +96,25 @@ def compute_iou_f1(pred_mask, ref_mask):
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     f1 = float(2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
-    return iou, f1
+    return iou, precision, recall, f1
+
+
+def chance_metrics(ref_mask, seeds=range(20)):
+    """Stable chance baseline matched to the empirical positive rate."""
+    base_rate = float(np.mean(ref_mask))
+    rows = []
+    for seed in seeds:
+        rng = np.random.default_rng(seed)
+        random_mask = rng.random(len(ref_mask)) < base_rate
+        rows.append(compute_iou_f1(random_mask, ref_mask))
+    rows = np.asarray(rows, dtype=np.float64)
+    return {
+        "positive_rate": base_rate,
+        "iou": float(np.mean(rows[:, 0])),
+        "precision": float(np.mean(rows[:, 1])),
+        "recall": float(np.mean(rows[:, 2])),
+        "f1": float(np.mean(rows[:, 3])),
+    }
 
 
 def best_f1_threshold(scores, ref_mask, candidates=None):
@@ -104,7 +122,7 @@ def best_f1_threshold(scores, ref_mask, candidates=None):
         candidates = np.linspace(0.05, 0.95, 19)
     best_thr, best_f1_val = 0.5, -1.0
     for thr in candidates:
-        _, f1 = compute_iou_f1(scores >= thr, ref_mask)
+        _, _, _, f1 = compute_iou_f1(scores >= thr, ref_mask)
         if f1 > best_f1_val:
             best_f1_val = f1
             best_thr = float(thr)
@@ -185,30 +203,45 @@ def main():
 
             netvad_scores = vad_probs[speaker][:num_frames] if len(vad_probs[speaker]) >= num_frames else np.pad(vad_probs[speaker], (0, num_frames - len(vad_probs[speaker])))
 
-            row = {"pair_index": idx + 1, "tag": tag, "speaker": speaker, "utt": (p1.name if speaker == 0 else p2.name)}
+            row = {"pair_index": idx + 1, "tag": tag, "speaker": speaker, "utt": (p1.name if speaker == 0 else p2.name),
+                   "reference_positive_rate": float(np.mean(ref_mask))}
             for thr in THRESHOLDS:
-                iou, f1 = compute_iou_f1(cam_norm >= thr, ref_mask)
+                iou, precision, recall, f1 = compute_iou_f1(cam_norm >= thr, ref_mask)
                 row[f"cam_iou_thr{thr}"] = iou
+                row[f"cam_precision_thr{thr}"] = precision
+                row[f"cam_recall_thr{thr}"] = recall
                 row[f"cam_f1_thr{thr}"] = f1
-                iou_net, f1_net = compute_iou_f1(netvad_scores >= thr, ref_mask)
+                iou_net, precision_net, recall_net, f1_net = compute_iou_f1(netvad_scores >= thr, ref_mask)
                 row[f"netvad_iou_thr{thr}"] = iou_net
+                row[f"netvad_precision_thr{thr}"] = precision_net
+                row[f"netvad_recall_thr{thr}"] = recall_net
                 row[f"netvad_f1_thr{thr}"] = f1_net
 
+            chance = chance_metrics(ref_mask)
+            row["chance_iou"] = chance["iou"]
+            row["chance_precision"] = chance["precision"]
+            row["chance_recall"] = chance["recall"]
+            row["chance_f1"] = chance["f1"]
+
             best_thr_cam, best_f1_cam = best_f1_threshold(cam_norm, ref_mask)
-            best_iou_cam, _ = compute_iou_f1(cam_norm >= best_thr_cam, ref_mask)
+            best_iou_cam, best_precision_cam, best_recall_cam, _ = compute_iou_f1(cam_norm >= best_thr_cam, ref_mask)
             row["cam_best_thr"] = best_thr_cam
             row["cam_best_f1"] = best_f1_cam
             row["cam_best_iou"] = best_iou_cam
+            row["cam_best_precision"] = best_precision_cam
+            row["cam_best_recall"] = best_recall_cam
 
             best_thr_net, best_f1_net = best_f1_threshold(netvad_scores, ref_mask)
-            best_iou_net, _ = compute_iou_f1(netvad_scores >= best_thr_net, ref_mask)
+            best_iou_net, best_precision_net, best_recall_net, _ = compute_iou_f1(netvad_scores >= best_thr_net, ref_mask)
             row["netvad_best_thr"] = best_thr_net
             row["netvad_best_f1"] = best_f1_net
             row["netvad_best_iou"] = best_iou_net
+            row["netvad_best_precision"] = best_precision_net
+            row["netvad_best_recall"] = best_recall_net
 
             rows.append(row)
             print(f"  Pair {idx+1:02d} ({tag}) speaker {speaker}: CAM best-F1={row['cam_best_f1']:.3f} (thr={row['cam_best_thr']:.2f})  "
-                  f"NetVAD best-F1={row['netvad_best_f1']:.3f} (thr={row['netvad_best_thr']:.2f})")
+                  f"NetVAD best-F1={row['netvad_best_f1']:.3f} (thr={row['netvad_best_thr']:.2f})  Chance F1={row['chance_f1']:.3f}")
 
     output_dir = gradcam_root / "results" / "vad_alignment"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -230,24 +263,56 @@ def main():
         summary["default_thresholds"][str(thr)] = {
             "cam_iou_mean": float(np.mean([r[f"cam_iou_thr{thr}"] for r in rows])),
             "cam_iou_std": float(np.std([r[f"cam_iou_thr{thr}"] for r in rows])),
+            "cam_precision_mean": float(np.mean([r[f"cam_precision_thr{thr}"] for r in rows])),
+            "cam_precision_std": float(np.std([r[f"cam_precision_thr{thr}"] for r in rows])),
+            "cam_recall_mean": float(np.mean([r[f"cam_recall_thr{thr}"] for r in rows])),
+            "cam_recall_std": float(np.std([r[f"cam_recall_thr{thr}"] for r in rows])),
             "cam_f1_mean": float(np.mean([r[f"cam_f1_thr{thr}"] for r in rows])),
             "cam_f1_std": float(np.std([r[f"cam_f1_thr{thr}"] for r in rows])),
             "netvad_iou_mean": float(np.mean([r[f"netvad_iou_thr{thr}"] for r in rows])),
             "netvad_iou_std": float(np.std([r[f"netvad_iou_thr{thr}"] for r in rows])),
+            "netvad_precision_mean": float(np.mean([r[f"netvad_precision_thr{thr}"] for r in rows])),
+            "netvad_precision_std": float(np.std([r[f"netvad_precision_thr{thr}"] for r in rows])),
+            "netvad_recall_mean": float(np.mean([r[f"netvad_recall_thr{thr}"] for r in rows])),
+            "netvad_recall_std": float(np.std([r[f"netvad_recall_thr{thr}"] for r in rows])),
             "netvad_f1_mean": float(np.mean([r[f"netvad_f1_thr{thr}"] for r in rows])),
             "netvad_f1_std": float(np.std([r[f"netvad_f1_thr{thr}"] for r in rows])),
+            "chance_iou_mean": float(np.mean([r["chance_iou"] for r in rows])),
+            "chance_iou_std": float(np.std([r["chance_iou"] for r in rows])),
+            "chance_precision_mean": float(np.mean([r["chance_precision"] for r in rows])),
+            "chance_precision_std": float(np.std([r["chance_precision"] for r in rows])),
+            "chance_recall_mean": float(np.mean([r["chance_recall"] for r in rows])),
+            "chance_recall_std": float(np.std([r["chance_recall"] for r in rows])),
+            "chance_f1_mean": float(np.mean([r["chance_f1"] for r in rows])),
+            "chance_f1_std": float(np.std([r["chance_f1"] for r in rows])),
         }
     summary["best_f1_threshold"] = {
         "cam_f1_mean": float(np.mean([r["cam_best_f1"] for r in rows])),
         "cam_f1_std": float(np.std([r["cam_best_f1"] for r in rows])),
         "cam_iou_mean": float(np.mean([r["cam_best_iou"] for r in rows])),
         "cam_iou_std": float(np.std([r["cam_best_iou"] for r in rows])),
+        "cam_precision_mean": float(np.mean([r["cam_best_precision"] for r in rows])),
+        "cam_precision_std": float(np.std([r["cam_best_precision"] for r in rows])),
+        "cam_recall_mean": float(np.mean([r["cam_best_recall"] for r in rows])),
+        "cam_recall_std": float(np.std([r["cam_best_recall"] for r in rows])),
         "cam_avg_best_threshold": float(np.mean([r["cam_best_thr"] for r in rows])),
         "netvad_f1_mean": float(np.mean([r["netvad_best_f1"] for r in rows])),
         "netvad_f1_std": float(np.std([r["netvad_best_f1"] for r in rows])),
         "netvad_iou_mean": float(np.mean([r["netvad_best_iou"] for r in rows])),
         "netvad_iou_std": float(np.std([r["netvad_best_iou"] for r in rows])),
+        "netvad_precision_mean": float(np.mean([r["netvad_best_precision"] for r in rows])),
+        "netvad_precision_std": float(np.std([r["netvad_best_precision"] for r in rows])),
+        "netvad_recall_mean": float(np.mean([r["netvad_best_recall"] for r in rows])),
+        "netvad_recall_std": float(np.std([r["netvad_best_recall"] for r in rows])),
         "netvad_avg_best_threshold": float(np.mean([r["netvad_best_thr"] for r in rows])),
+        "chance_f1_mean": float(np.mean([r["chance_f1"] for r in rows])),
+        "chance_f1_std": float(np.std([r["chance_f1"] for r in rows])),
+        "chance_iou_mean": float(np.mean([r["chance_iou"] for r in rows])),
+        "chance_iou_std": float(np.std([r["chance_iou"] for r in rows])),
+        "chance_precision_mean": float(np.mean([r["chance_precision"] for r in rows])),
+        "chance_precision_std": float(np.std([r["chance_precision"] for r in rows])),
+        "chance_recall_mean": float(np.mean([r["chance_recall"] for r in rows])),
+        "chance_recall_std": float(np.std([r["chance_recall"] for r in rows])),
     }
     ratio_f1 = summary["best_f1_threshold"]["cam_f1_mean"] / summary["best_f1_threshold"]["netvad_f1_mean"] if summary["best_f1_threshold"]["netvad_f1_mean"] > 0 else float("nan")
     summary["cam_as_fraction_of_netvad_ceiling_f1_bestthr"] = float(ratio_f1)
@@ -255,18 +320,20 @@ def main():
     summary_path = output_dir / "vad_alignment_summary.json"
     summary_path.write_text(json.dumps(summary, indent=2))
 
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 80)
     print("VAD GROUND-TRUTH (SILERO REFERENCE) ALIGNMENT SUMMARY:")
-    print("=" * 70)
+    print("=" * 80)
     for thr in THRESHOLDS:
         d = summary["default_thresholds"][str(thr)]
-        print(f"Threshold={thr}: CAM F1={d['cam_f1_mean']:.3f}±{d['cam_f1_std']:.3f}, IoU={d['cam_iou_mean']:.3f}±{d['cam_iou_std']:.3f} | "
-              f"NetVAD F1={d['netvad_f1_mean']:.3f}±{d['netvad_f1_std']:.3f}, IoU={d['netvad_iou_mean']:.3f}±{d['netvad_iou_std']:.3f}")
+        print(f"Threshold={thr}: CAM P={d['cam_precision_mean']:.3f} R={d['cam_recall_mean']:.3f} F1={d['cam_f1_mean']:.3f} | "
+              f"NetVAD P={d['netvad_precision_mean']:.3f} R={d['netvad_recall_mean']:.3f} F1={d['netvad_f1_mean']:.3f} | "
+              f"Chance P={d['chance_precision_mean']:.3f} R={d['chance_recall_mean']:.3f} F1={d['chance_f1_mean']:.3f}")
     b = summary["best_f1_threshold"]
-    print(f"Best-F1 threshold: CAM F1={b['cam_f1_mean']:.3f}±{b['cam_f1_std']:.3f} (avg thr={b['cam_avg_best_threshold']:.2f}) | "
-          f"NetVAD F1={b['netvad_f1_mean']:.3f}±{b['netvad_f1_std']:.3f} (avg thr={b['netvad_avg_best_threshold']:.2f})")
+    print(f"Best-F1: CAM P={b['cam_precision_mean']:.3f} R={b['cam_recall_mean']:.3f} F1={b['cam_f1_mean']:.3f} (avg thr={b['cam_avg_best_threshold']:.2f}) | "
+          f"NetVAD P={b['netvad_precision_mean']:.3f} R={b['netvad_recall_mean']:.3f} F1={b['netvad_f1_mean']:.3f} (avg thr={b['netvad_avg_best_threshold']:.2f}) | "
+          f"Chance P={b['chance_precision_mean']:.3f} R={b['chance_recall_mean']:.3f} F1={b['chance_f1_mean']:.3f}")
     print(f"CAM achieves {ratio_f1*100:.1f}% of the network's own VAD-prediction F1 ceiling (best-F1 threshold).")
-    print("=" * 70)
+    print("=" * 80)
     print(f"[+] Saved: {csv_path}\n            {summary_path}")
 
 

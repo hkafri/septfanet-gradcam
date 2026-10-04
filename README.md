@@ -174,11 +174,9 @@ Full per-pair numbers, summary stats, and the comparison plot are saved in
 
 ### Finalized Block 9 Example
 
-These figures use the finalized `TCN.TCN.9.conv1d` target layer and the four-panel renderer: mixture spectrogram, VAD-logit CAM curve, waveform-target CAM curve, and a combined overlay panel. Both targets come from the same real LibriSpeech mixture formed from `5639-40744-0000.flac` and `61-70968-0001.flac`. Every panel title names the speaker it explains, and both CAM curve panels carry a "Normalized importance" y-axis label so they cannot be mistaken for amplitude plots.
+These figures use the finalized `TCN.TCN.9.conv1d` target layer and the same four-panel renderer, modified to remove the previous confusion. Both targets come from the same real LibriSpeech mixture formed from `5639-40744-0000.flac` and `61-70968-0001.flac`.
 
-**Naming clarification (advisor feedback):** "Waveform-target CAM" is a second Grad-CAM saliency curve backpropagated from the separated-waveform output — it is not a plot of the audio waveform itself. The overlay panel was kept as a single panel rather than split into two (to keep the figure at a compact four panels) and was renamed to "Waveform-target CAM heatmap + VAD-logit curve" so its title names both of its contents.
-
-**Expected alignment level:** a moderate, imperfect visual correspondence between the VAD-logit CAM curve and the spectrogram is the expected, already-quantified outcome — CAM-vs-Silero-reference best F1 = $0.522$ vs. the network's own predicted-VAD F1 = $0.939$ against the same reference (see [VAD ground-truth alignment](#vad-ground-truth-alignment-iou--f1)). This is a measured result, not a bug in the figure.
+Panel 1 shows the mixture spectrogram. Panel 2 shows the VAD-logit Grad-CAM curve: **which input regions the network's decision depends on**, i.e. an explanation of the mechanism. Panels 3 and 4 instead compare the network's **actual predicted VAD probability** with the **Silero reference VAD** for the target speaker, first as continuous curves and then as thresholded binary activity tracks: **whether the network's predicted VAD is correct**. These panels answer different questions, and the figure caption now states that distinction directly.
 
 ![Speaker 0 example using TCN.TCN.9.conv1d](results/librispeech_gradcam/example_speaker0_block9.png)
 
@@ -224,20 +222,27 @@ a second automatic system, not an absolute correctness ceiling.
 Using the finalized single-layer CAM (`TCN.TCN.9.conv1d`, VAD-logit target), computed on the mixture, thresholded
 against the Silero reference mask for that speaker, over all $70$ speaker instances (35 pooled pairs × 2 speakers):
 
-| Threshold | CAM F1 | CAM IoU | Network's own VAD-probability F1 (ceiling) | Network's own VAD-probability IoU |
-|---|---|---|---|---|
-| $0.3$ (fixed) | $0.346 \pm 0.191$ | $0.227 \pm 0.158$ | $0.919 \pm 0.098$ | $0.863 \pm 0.141$ |
-| $0.5$ (fixed) | $0.194 \pm 0.140$ | $0.115 \pm 0.101$ | $0.913 \pm 0.105$ | $0.855 \pm 0.148$ |
-| $0.7$ (fixed) | $0.081 \pm 0.072$ | $0.044 \pm 0.044$ | $0.901 \pm 0.105$ | $0.833 \pm 0.147$ |
-| **Best-F1 per instance** | **$0.522 \pm 0.217$** (avg. optimal threshold $\approx 0.06$) | $0.383 \pm 0.207$ | **$0.939 \pm 0.081$** (avg. optimal threshold $\approx 0.31$) | $0.893 \pm 0.121$ |
+| Comparison | CAM precision | CAM recall | CAM F1 | CAM IoU | Network VAD precision | Network VAD recall | Network VAD F1 | Network VAD IoU | Chance precision | Chance recall | Chance F1 | Chance IoU |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Threshold $0.3$ | $0.796 \pm 0.170$ | $0.250 \pm 0.180$ | $0.346 \pm 0.191$ | $0.227 \pm 0.158$ | $0.925 \pm 0.113$ | $0.931 \pm 0.110$ | $0.919 \pm 0.098$ | $0.863 \pm 0.141$ | $0.817 \pm 0.117$ | $0.813 \pm 0.118$ | $0.815 \pm 0.118$ | $0.702 \pm 0.140$ |
+| Threshold $0.5$ | $0.807 \pm 0.213$ | $0.121 \pm 0.107$ | $0.194 \pm 0.140$ | $0.115 \pm 0.101$ | $0.939 \pm 0.113$ | $0.908 \pm 0.121$ | $0.913 \pm 0.105$ | $0.855 \pm 0.148$ | $0.817 \pm 0.117$ | $0.813 \pm 0.118$ | $0.815 \pm 0.118$ | $0.702 \pm 0.140$ |
+| Threshold $0.7$ | $0.842 \pm 0.258$ | $0.044 \pm 0.044$ | $0.081 \pm 0.072$ | $0.044 \pm 0.044$ | $0.944 \pm 0.112$ | $0.881 \pm 0.121$ | $0.901 \pm 0.105$ | $0.833 \pm 0.147$ | $0.817 \pm 0.117$ | $0.813 \pm 0.118$ | $0.815 \pm 0.118$ | $0.702 \pm 0.140$ |
+| **Best-F1 per instance** | $0.797 \pm 0.151$ | $0.436 \pm 0.240$ | **$0.522 \pm 0.217$** (avg. optimal threshold $\approx 0.06$) | $0.383 \pm 0.207$ | $0.929 \pm 0.109$ | $0.959 \pm 0.065$ | **$0.939 \pm 0.081$** (avg. optimal threshold $\approx 0.31$) | $0.893 \pm 0.121$ | $0.817 \pm 0.117$ | $0.813 \pm 0.118$ | **$0.815 \pm 0.118$** | $0.702 \pm 0.140$ |
 
-**Honest read**: at fixed, "reasonable-looking" thresholds (0.3–0.7), CAM F1 is quite low and drops sharply as the
+**Interpretation with the chance baseline included:** the empirical speech-active base rate is high in these
+reference masks (about $0.82$ of frames), so a class-balance-matched coin-flip predictor already reaches
+$F1 \approx 0.815$. That means the CAM's best-F1 of $0.522$ is **not above chance**, even though its precision is
+roughly comparable to its recall breakdown suggests some weak partial alignment. The network's own predicted VAD
+probability is the only method here that clearly beats the chance baseline ($F1 \approx 0.939$ at its best-F1
+threshold). The earlier claim that the CAM was "clearly above chance" is therefore corrected: **it is not**.
+
+**Honest read:** at fixed, "reasonable-looking" thresholds (0.3–0.7), CAM F1 is quite low and drops sharply as the
 threshold rises (0.346 → 0.081), because the min-max-normalized CAM is sparse — most values sit well below 0.3, with
 attention concentrated in a few peaks. The per-instance best-F1 threshold confirms this: it averages around $0.06$,
 far below where one would naively threshold a normalized heatmap. At that best threshold, CAM reaches
-$F1 = 0.522 \pm 0.217$ — **about 55.6% of the network's own VAD-prediction F1 ceiling** ($0.522 / 0.939$). This is a
-real, moderate alignment with actual speech activity — clearly above chance — but well short of the network's own
-VAD head, and the wide standard deviation ($\pm0.217$) means this varies substantially pair to pair.
+$F1 = 0.522 \pm 0.217$ — **about 55.6% of the network's own VAD-prediction F1 ceiling** ($0.522 / 0.939$), but still
+**below the matched chance baseline**. The Grad-CAM map is therefore useful as an explanation of which regions
+drive a decision, not as a substitute VAD predictor.
 
 Full per-instance results and thresholds: [vad_alignment_results.csv](results/vad_alignment/vad_alignment_results.csv),
 [vad_alignment_summary.json](results/vad_alignment/vad_alignment_summary.json).
