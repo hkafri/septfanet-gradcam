@@ -127,46 +127,53 @@ def report_comparison(left, right, label):
     print(f"    real-vs-random control (independent min-max): max={np.max(np.abs(independent_left - random_map)):.6f}, MAE={np.mean(np.abs(independent_left - random_map)):.6f}")
 
 
-def save_figure(spec, vad_cam, reference_curve, predicted_curve, paths, target_speaker, output_path):
+def save_combined_figure(spec, cams_vad, reference_curves, vad_probabilities, paths, output_path):
+    """Combined 2x3 figure: speaker 0 on top, speaker 1 on bottom.
+
+    Columns: mixture spectrogram | VAD-logit CAM | thresholded 0/1 ground-truth-vs-predicted VAD.
+    """
     time = np.linspace(0, TARGET_SECONDS, spec.shape[1])
-    vad_plot = np.interp(time, np.linspace(0, TARGET_SECONDS, len(vad_cam)), minmax(vad_cam))
-    reference_plot = np.interp(time, np.linspace(0, TARGET_SECONDS, len(reference_curve)), reference_curve)
-    predicted_plot = np.interp(time, np.linspace(0, TARGET_SECONDS, len(predicted_curve)), predicted_curve)
     log_spec = np.log10(spec + 1e-8)
     source_text = " | ".join(path.name for path in paths)
 
-    fig, axes = plt.subplots(1, 4, figsize=(22, 5.6), constrained_layout=True)
-    axes[0].imshow(log_spec, aspect="auto", origin="lower", cmap="viridis", extent=[0, TARGET_SECONDS, 0, spec.shape[0]])
-    axes[0].set_title(f"Mixture spectrogram (separation target: Speaker {target_speaker})")
-    axes[0].set_xlabel("Seconds")
-    axes[0].set_ylabel("Frequency bin")
-    axes[1].plot(time, vad_plot, color="darkorange")
-    axes[1].set_title(f"VAD-logit CAM (Speaker {target_speaker})")
-    axes[1].set_ylim(0, 1)
-    axes[1].set_xlabel("Seconds")
-    axes[1].set_ylabel("Normalized importance")
-    axes[2].plot(time, reference_plot, color="black", linewidth=1.8, label="Ground truth (Silero reference)")
-    axes[2].plot(time, predicted_plot, color="navy", linewidth=1.8, label="Network's predicted VAD")
-    axes[2].set_title(f"Ground truth vs. predicted VAD (Speaker {target_speaker})")
-    axes[2].set_ylim(-0.05, 1.05)
-    axes[2].set_xlabel("Seconds")
-    axes[2].set_ylabel("Activity score")
-    axes[2].legend(loc="upper right")
-    axes[3].plot(time, reference_plot >= 0.5, color="black", drawstyle="steps-post", linewidth=1.8,
-                 label="Ground truth (Silero reference)")
-    axes[3].plot(time, predicted_plot >= 0.5, color="navy", drawstyle="steps-post", linewidth=1.8,
-                 label="Network's predicted VAD")
-    axes[3].set_title(f"Ground truth vs. predicted VAD, thresholded (Speaker {target_speaker})")
-    axes[3].set_ylim(-0.15, 1.15)
-    axes[3].set_yticks([0, 1])
-    axes[3].set_xlabel("Seconds")
-    axes[3].set_ylabel("Speech-active frame")
-    axes[3].legend(loc="upper right")
-    fig.suptitle(f"Real LibriSpeech, target speaker {target_speaker}: {source_text}", fontsize=12)
+    fig, axes = plt.subplots(2, 3, figsize=(22, 9), constrained_layout=True)
+
+    for speaker in range(2):
+        row = speaker
+        vad_plot = np.interp(time, np.linspace(0, TARGET_SECONDS, len(cams_vad[speaker])), minmax(cams_vad[speaker]))
+        reference_plot = np.interp(time, np.linspace(0, TARGET_SECONDS, len(reference_curves[speaker])),
+                                   reference_curves[speaker])
+        predicted_plot = np.interp(time, np.linspace(0, TARGET_SECONDS, len(vad_probabilities[speaker])),
+                                   vad_probabilities[speaker])
+
+        axes[row, 0].imshow(log_spec, aspect="auto", origin="lower", cmap="viridis",
+                            extent=[0, TARGET_SECONDS, 0, spec.shape[0]])
+        axes[row, 0].set_title(f"Mixture spectrogram (Speaker {speaker})")
+        axes[row, 0].set_xlabel("Seconds")
+        axes[row, 0].set_ylabel("Frequency bin")
+
+        axes[row, 1].plot(time, vad_plot, color="darkorange")
+        axes[row, 1].set_title(f"VAD-logit CAM (Speaker {speaker})")
+        axes[row, 1].set_ylim(0, 1)
+        axes[row, 1].set_xlabel("Seconds")
+        axes[row, 1].set_ylabel("Normalized importance")
+
+        axes[row, 2].plot(time, reference_plot >= 0.5, color="black", drawstyle="steps-post", linewidth=1.8,
+                          label="Ground truth (Silero reference)")
+        axes[row, 2].plot(time, predicted_plot >= 0.5, color="navy", drawstyle="steps-post", linewidth=1.8,
+                          label="Network's predicted VAD")
+        axes[row, 2].set_title(f"Ground truth vs. predicted VAD, thresholded (Speaker {speaker})")
+        axes[row, 2].set_ylim(-0.15, 1.15)
+        axes[row, 2].set_yticks([0, 1])
+        axes[row, 2].set_xlabel("Seconds")
+        axes[row, 2].set_ylabel("Speech-active frame")
+        axes[row, 2].legend(loc="upper right")
+
+    fig.suptitle(f"Real LibriSpeech mixture: {source_text}", fontsize=12)
     fig.text(0.5, -0.02,
-             "Panel 2 explains which input regions the network's VAD decision depends on (Grad-CAM mechanism); "
-             "panels 3-4 check whether the network's actual VAD prediction is correct against the Silero reference.\n"
-             "These are different questions: explanation of the mechanism versus performance of the predicted VAD output.",
+             "Middle column: which input regions the network's VAD decision depends on (Grad-CAM mechanism). "
+             "Right column: whether the network's actual VAD prediction is correct against the Silero reference.\n"
+             "These answer different questions: explanation of the mechanism versus performance of the predicted VAD output.",
              ha="center", va="top", fontsize=9)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -220,8 +227,9 @@ def main():
         cams["vad_logit"].append(vad_cam)
         cams["waveform"].append(waveform_cam)
         print(f"speaker {speaker}: VAD logit frame={vad_index}, value={vad_target:.6f}; waveform sample={waveform_index}, value={waveform_target:.6f}")
-        save_figure(spec, vad_cam, reference_curves[speaker], vad_probabilities[speaker], paths, speaker,
-                    output_dir / f"example_speaker{speaker}.png")
+
+    save_combined_figure(spec, cams["vad_logit"], reference_curves, vad_probabilities, paths,
+                         output_dir / "example_combined_block9.png")
 
     print("\nNormalization and control checks:")
     report_comparison(cams["vad_logit"][0], cams["vad_logit"][1], "VAD-logit CAM speaker comparison")

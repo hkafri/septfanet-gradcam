@@ -174,13 +174,11 @@ Full per-pair numbers, summary stats, and the comparison plot are saved in
 
 ### Finalized Block 9 Example
 
-These figures use the finalized `TCN.TCN.9.conv1d` target layer and the same four-panel renderer, modified to remove the previous confusion. Both targets come from the same real LibriSpeech mixture formed from `5639-40744-0000.flac` and `61-70968-0001.flac`.
+This single combined figure (2 rows × 3 columns) uses the finalized `TCN.TCN.9.conv1d` target layer. Both rows come from the same real LibriSpeech mixture formed from `5639-40744-0000.flac` and `61-70968-0001.flac`; speaker 0's row is on top, speaker 1's on the bottom.
 
-Panel 1 shows the mixture spectrogram. Panel 2 shows the VAD-logit Grad-CAM curve: **which input regions the network's decision depends on**, i.e. an explanation of the mechanism. Panels 3 and 4 instead compare the network's **actual predicted VAD probability** with the **Silero reference VAD** for the target speaker, first as continuous curves and then as thresholded binary activity tracks: **whether the network's predicted VAD is correct**. These panels answer different questions, and the figure caption now states that distinction directly.
+Each row shows three panels. Left: the mixture spectrogram. Middle: the VAD-logit Grad-CAM curve — **which input regions the network's decision depends on** (an explanation of the mechanism). Right: the thresholded 0/1 comparison of the network's **actual predicted VAD** against the **Silero reference VAD** for that speaker — **whether the network's predicted VAD is correct** (a performance check). These answer different questions, and the figure caption states that distinction directly.
 
-![Speaker 0 example using TCN.TCN.9.conv1d](results/librispeech_gradcam/example_speaker0_block9.png)
-
-![Speaker 1 example using TCN.TCN.9.conv1d](results/librispeech_gradcam/example_speaker1_block9.png)
+![Combined example (speaker 0 top, speaker 1 bottom) using TCN.TCN.9.conv1d](results/librispeech_gradcam/example_combined_block9.png)
 
 ## Results
 
