@@ -22,6 +22,7 @@ Pipeline:
 5. Aggregate mean +/- std across all pairs already fetched (35 pooled).
 """
 
+import argparse
 import csv
 import json
 import sys
@@ -43,7 +44,7 @@ SAMPLE_RATE = 16000
 TARGET_SECONDS = 3.0
 N_FFT = 512
 HOP_LENGTH = 256
-SINGLE_LAYER = "TCN.TCN.9.conv1d"  # finalized in Part 1 (ensemble did not clearly help)
+DEFAULT_LAYER = "TCN.TCN.9.conv1d"  # finalized in Part 1 (ensemble did not clearly help)
 THRESHOLDS = [0.3, 0.5, 0.7]
 
 
@@ -129,9 +130,9 @@ def best_f1_threshold(scores, ref_mask, candidates=None):
     return best_thr, best_f1_val
 
 
-def compute_cam(model, audio, speaker, index, device):
+def compute_cam(model, audio, speaker, index, device, target_layer):
     input_audio = audio.clone().detach().to(device).float().requires_grad_(True)
-    gradcam = GradCAM(model, SINGLE_LAYER, device)
+    gradcam = GradCAM(model, target_layer, device)
     try:
         with torch.enable_grad():
             output = model(input_audio)
@@ -164,12 +165,22 @@ def load_all_pairs():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--target-layer", default=DEFAULT_LAYER,
+                        help="Hook layer name (default: %(default)s, the finalized Part-1 layer)")
+    parser.add_argument("--output-suffix", default="",
+                        help="Suffix appended to output filenames (e.g. '_block22')")
+    args = parser.parse_args()
+    target_layer = args.target_layer
+    suffix = args.output_suffix
+
     device = "cpu"
     config = json.loads((gradcam_root / "configs" / "config_with_vad.json").read_text())
     model = module_arch.SeparationModel(**config["arch"]["args"]).to(device).eval()
     checkpoint = torch.load(gradcam_root / "weights" / "model_with_vad.pth", map_location=device, weights_only=False)
     model.load_state_dict(checkpoint.get("state_dict", checkpoint), strict=True)
 
+    print(f"[*] Target layer: {target_layer}")
     print("[*] Loading Silero VAD reference model...")
     vad_model = load_silero_vad()
 
@@ -197,7 +208,7 @@ def main():
                 continue
 
             vad_idx = int(np.argmax(np.abs(vad_logits[speaker])))
-            raw_cam = compute_cam(model, audio, speaker, vad_idx, device)
+            raw_cam = compute_cam(model, audio, speaker, vad_idx, device, target_layer)
             cam_norm = minmax(raw_cam)
             cam_norm = cam_norm[:num_frames] if len(cam_norm) >= num_frames else np.pad(cam_norm, (0, num_frames - len(cam_norm)))
 
@@ -245,7 +256,7 @@ def main():
 
     output_dir = gradcam_root / "results" / "vad_alignment"
     output_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = output_dir / "vad_alignment_results.csv"
+    csv_path = output_dir / f"vad_alignment_results{suffix}.csv"
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
@@ -253,7 +264,7 @@ def main():
 
     summary = {
         "num_speaker_instances": len(rows),
-        "target_layer": SINGLE_LAYER,
+        "target_layer": target_layer,
         "reference_source": "Silero VAD (github.com/snakers4/silero-vad) run on clean pre-mix sources -- "
                              "NOT hand-labeled ground truth, a second automatic VAD model's reference",
         "default_thresholds": {},
@@ -317,7 +328,7 @@ def main():
     ratio_f1 = summary["best_f1_threshold"]["cam_f1_mean"] / summary["best_f1_threshold"]["netvad_f1_mean"] if summary["best_f1_threshold"]["netvad_f1_mean"] > 0 else float("nan")
     summary["cam_as_fraction_of_netvad_ceiling_f1_bestthr"] = float(ratio_f1)
 
-    summary_path = output_dir / "vad_alignment_summary.json"
+    summary_path = output_dir / f"vad_alignment_summary{suffix}.json"
     summary_path.write_text(json.dumps(summary, indent=2))
 
     print("\n" + "=" * 80)

@@ -1,0 +1,77 @@
+{
+  "pre_registration": {
+    "primary_layer": "TCN.TCN.23.conv1d",
+    "primary_window": 10,
+    "alpha": 0.05,
+    "declared_before_full_pool_run": true
+  },
+  "num_pairs": 35,
+  "cells": {
+    "TCN.TCN.9.conv1d W=5": {
+      "role": "secondary",
+      "n_transitions": 107,
+      "near_mean": 0.20180512151382995,
+      "near_std": 0.20222426783165662,
+      "control_mean": 0.19078880933135978,
+      "control_std": 0.16524655002727504,
+      "mean_diff": 0.011016312182470178,
+      "wilcoxon": {
+        "w_statistic": 2502.0,
+        "p_value": 0.8033675131098833,
+        "rank_biserial_r": 0.0286607608129234,
+        "n": 107
+      }
+    },
+    "TCN.TCN.9.conv1d W=10": {
+      "role": "secondary",
+      "n_transitions": 107,
+      "near_mean": 0.20822685868153148,
+      "near_std": 0.1822480022813352,
+      "control_mean": 0.18511420514257063,
+      "control_std": 0.1602766218615824,
+      "mean_diff": 0.02311265353896086,
+      "wilcoxon": {
+        "w_statistic": 2359.0,
+        "p_value": 0.13312929193174902,
+        "rank_biserial_r": 0.16773411805435348,
+        "n": 107
+      }
+    },
+    "TCN.TCN.23.conv1d W=5": {
+      "role": "secondary",
+      "n_transitions": 107,
+      "near_mean": 0.24374894439785674,
+      "near_std": 0.1991138692306496,
+      "control_mean": 0.2532240398323601,
+      "control_std": 0.22444901314646284,
+      "mean_diff": -0.009475095434503339,
+      "wilcoxon": {
+        "w_statistic": 2542.0,
+        "p_value": 0.7778849543532778,
+        "rank_biserial_r": -0.03453062640985598,
+        "n": 107
+      }
+    },
+    "TCN.TCN.23.conv1d W=10": {
+      "role": "primary",
+      "n_transitions": 107,
+      "near_mean": 0.23577685372084944,
+      "near_std": 0.17327719539551897,
+      "control_mean": 0.28863062411543294,
+      "control_std": 0.2088057370447275,
+      "mean_diff": -0.0528537703945835,
+      "wilcoxon": {
+        "w_statistic": 2141.0,
+        "p_value": 0.04029095325826831,
+        "rank_biserial_r": -0.23012987012987013,
+        "n": 107
+      }
+    }
+  },
+  "primary_result": {
+    "n_transitions": 107,
+    "p_value": 0.04029095325826831,
+    "rank_biserial_r": -0.23012987012987013,
+    "significant_at_alpha": true
+  }
+}
