@@ -1,0 +1,15 @@
+{
+  "n_instances": 70,
+  "pooled_auc": {
+    "TCN.TCN.9.conv1d": 0.44985237218754287,
+    "TCN.TCN.23.conv1d": 0.6867973388529937
+  },
+  "mean_per_instance_auc": {
+    "TCN.TCN.9.conv1d": 0.41728724228781444,
+    "TCN.TCN.23.conv1d": 0.722827842300648
+  },
+  "std_per_instance_auc": {
+    "TCN.TCN.9.conv1d": 0.191555671925319,
+    "TCN.TCN.23.conv1d": 0.14927284612440586
+  }
+}
