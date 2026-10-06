@@ -1,0 +1,29 @@
+{
+  "TCN.TCN.9.conv1d": {
+    "n_instances": 70,
+    "auc_mean": 0.41728724228781444,
+    "auc_std": 0.191555671925319,
+    "auc_min": 0.039285714285714285,
+    "auc_max": 0.8181444991789819,
+    "wilcoxon_vs_0.5": {
+      "w_statistic": 721.0,
+      "p_value": 0.0022738781641239154,
+      "rank_biserial_r": -0.4197183098591549,
+      "n": 70
+    }
+  },
+  "TCN.TCN.23.conv1d": {
+    "n_instances": 70,
+    "auc_mean": 0.722827842300648,
+    "auc_std": 0.14927284612440586,
+    "auc_min": 0.13681891025641027,
+    "auc_max": 0.9843749999999999,
+    "wilcoxon_vs_0.5": {
+      "w_statistic": 107.0,
+      "p_value": 3.029015078896572e-11,
+      "rank_biserial_r": 0.9138832997987928,
+      "n": 70
+    },
+    "low_auc_count": 3
+  }
+}

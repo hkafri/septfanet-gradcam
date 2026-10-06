@@ -216,15 +216,24 @@ Statistical validation across **selection set ($N = 20$ pairs)**, **disjoint hel
 
 The held-out validation confirms that the attention sensitivity effect is completely genuine and not an artifact of layer selection bias: on unseen, non-overlapping speakers, real speaker-vs-speaker MAE remains low ($0.229–0.258$), statistically significantly lower ($p < 0.0001$) than random control MAE ($0.418–0.442$), with an effect size of $r \ge 0.983$.
 
-## VAD ground-truth alignment (IoU / F1)
+## VAD ground-truth alignment: does attribution align with VAD timing?
 
-**Caveat up front**: "reference" labels here come from running the open-source [Silero VAD](https://github.com/snakers4/silero-vad)
-model on each **clean, pre-mix** single-speaker source. This is a reference from another automatic VAD model, **not
-hand-labeled ground truth** — Silero VAD can itself misjudge onsets/offsets, so these numbers measure agreement with
-a second automatic system, not an absolute correctness ceiling.
+This section documents the complete investigation into whether Grad-CAM's attention over a single VAD decision
+aligns with true voice-activity timing. Three independent evaluation angles were tested — **global frame-by-frame
+F1** across multiple hook layers, **Integrated Gradients** (an entirely different, input-space method), and a
+**local per-transition** evaluation (properly pre-registered). All three agree: single-frame gradient-based
+attribution does **not** align with true VAD timing in this network. This investigation is investigated and
+**closed** — not an open question.
 
-Using the finalized single-layer CAM (`TCN.TCN.9.conv1d`, VAD-logit target), computed on the mixture, thresholded
-against the Silero reference mask for that speaker, over all $70$ speaker instances (35 pooled pairs × 2 speakers):
+**Reference caveat**: "reference" labels come from the open-source [Silero VAD](https://github.com/snakers4/silero-vad)
+model run on each clean, pre-mix single-speaker source. This is a reference from another automatic VAD model, **not
+hand-labeled ground truth** — it measures agreement with a second automatic system, not an absolute correctness
+ceiling.
+
+### The original finding (global frame-by-frame F1)
+
+Using the finalized layer `TCN.TCN.9.conv1d` (VAD-logit target), computed on the mixture and thresholded against
+the Silero reference mask, over all 70 speaker instances (35 pooled pairs × 2 speakers):
 
 | Comparison | CAM precision | CAM recall | CAM F1 | CAM IoU | Network VAD precision | Network VAD recall | Network VAD F1 | Network VAD IoU | Chance precision | Chance recall | Chance F1 | Chance IoU |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -233,35 +242,164 @@ against the Silero reference mask for that speaker, over all $70$ speaker instan
 | Threshold $0.7$ | $0.842 \pm 0.258$ | $0.044 \pm 0.044$ | $0.081 \pm 0.072$ | $0.044 \pm 0.044$ | $0.944 \pm 0.112$ | $0.881 \pm 0.121$ | $0.901 \pm 0.105$ | $0.833 \pm 0.147$ | $0.817 \pm 0.117$ | $0.813 \pm 0.118$ | $0.815 \pm 0.118$ | $0.702 \pm 0.140$ |
 | **Best-F1 per instance** | $0.797 \pm 0.151$ | $0.436 \pm 0.240$ | **$0.522 \pm 0.217$** (avg. optimal threshold $\approx 0.06$) | $0.383 \pm 0.207$ | $0.929 \pm 0.109$ | $0.959 \pm 0.065$ | **$0.939 \pm 0.081$** (avg. optimal threshold $\approx 0.31$) | $0.893 \pm 0.121$ | $0.817 \pm 0.117$ | $0.813 \pm 0.118$ | **$0.815 \pm 0.118$** | $0.702 \pm 0.140$ |
 
-**Interpretation with the chance baseline included:** the empirical speech-active base rate is high in these
-reference masks (about $0.82$ of frames), so a class-balance-matched coin-flip predictor already reaches
-$F1 \approx 0.815$. That means the CAM's best-F1 of $0.522$ is **not above chance**, even though its precision is
-roughly comparable to its recall breakdown suggests some weak partial alignment. The network's own predicted VAD
-probability is the only method here that clearly beats the chance baseline ($F1 \approx 0.939$ at its best-F1
-threshold). The earlier claim that the CAM was "clearly above chance" is therefore corrected: **it is not**.
+The empirical speech-active base rate is high (~0.82 of frames), so a class-balance-matched coin-flip predictor
+already reaches $F1 \approx 0.815$. The CAM's best-F1 of $0.522$ is **not above chance**. Only the network's own
+predicted VAD probability clearly beats chance ($F1 \approx 0.939$).
 
-**Honest read:** at fixed, "reasonable-looking" thresholds (0.3–0.7), CAM F1 is quite low and drops sharply as the
-threshold rises (0.346 → 0.081), because the min-max-normalized CAM is sparse — most values sit well below 0.3, with
-attention concentrated in a few peaks. The per-instance best-F1 threshold confirms this: it averages around $0.06$,
-far below where one would naively threshold a normalized heatmap. At that best threshold, CAM reaches
-$F1 = 0.522 \pm 0.217$ — **about 55.6% of the network's own VAD-prediction F1 ceiling** ($0.522 / 0.939$), but still
-**below the matched chance baseline**. The Grad-CAM map is therefore useful as an explanation of which regions
-drive a decision, not as a substitute VAD predictor.
+### Hypothesis 1 — maybe it's the wrong layer?
 
-**Two independent claims about the CAM — do not conflate them:**
+Forward receptive-field reasoning initially suggested an earlier layer — but that answers the wrong question,
+because Grad-CAM gradients flow **backward** from the target through the remaining depth. A direct gradient-spread
+measurement ([diagnose_grad_spread.py](scripts/diagnose_grad_spread.py)) showed that backward gradient spread
+**shrinks** toward the output: block 2's gradient is a broad 52-frame smear, while block 22's is a sharp 7-frame
+spike centered exactly on the target frame. This motivated a sweep across 6 candidate hook layers (9, 15, 18, 20,
+22, 23) through the unchanged alignment pipeline ([evaluate_vad_alignment.py](scripts/evaluate_vad_alignment.py),
+parameterized via `--target-layer`).
 
-1. The **MAE-vs-random-noise** result (validated at $N=100$ pairs, [Full-scale validation](#full-scale-validation-n--100-pairs-200-speakers))
-   shows the CAM has genuine, non-random structure that differs between speakers. This claim **holds**.
-2. The **VAD-ground-truth-alignment** result (this section) shows that this structure's specific temporal pattern
-   does **not** align with true voice-activity timing any better than a naive chance baseline. This claim **does
-   not hold**.
+| Hook block | Best-F1 | Precision | Recall | vs. chance (0.815) |
+|---|---|---|---|---|
+| 9 | $0.522 \pm 0.217$ | 0.797 | 0.436 | No (−0.293) |
+| 15 | $0.420 \pm 0.271$ | 0.681 | 0.338 | No (−0.395) |
+| 18 | $0.501 \pm 0.203$ | 0.823 | 0.400 | No (−0.314) |
+| 20 | $0.562 \pm 0.200$ | 0.807 | 0.472 | No (−0.253) |
+| 22 | $0.453 \pm 0.177$ | 0.755 | 0.352 | No (−0.362) |
+| **23** | **$0.706 \pm 0.169$** | **0.912** | **0.613** | **No (−0.109)** |
 
-These are different, independent questions about the CAM — one measures whether the attention maps are speaker-
-specific at all, the other whether their timing matches actual voice activity. Disproving the second does not
-invalidate the first, and vice versa.
+Block 23 (the last block before the VAD head) improves substantially over block 9 ($0.706$ vs. $0.522$) — the
+gradient-spread diagnostic predicted the direction of this correctly — but **still does not beat chance**. A
+mask-inspection check confirmed block 23's improvement is a genuine partial match, not a floor-dominance /
+thresholding artifact (its thresholded masks track real active regions, not near-all-active/inactive degenerates).
+Per-layer artifacts: `results/vad_alignment/vad_alignment_{results,summary}_block{15,18,20,22,23}.{csv,json}`.
+
+### Hypothesis 2 — maybe it's the wrong attribution method?
+
+Integrated Gradients (IG) attributes directly to the input with no hook-layer choice. The STFT is a differentiable
+`torch` op inside the autograd graph (verified: gradients flow to the raw waveform), so IG was applied to the raw
+mixture waveform, all-zero baseline, backpropagating from the same VAD-logit target, aggregated to a per-frame
+curve ([evaluate_ig_vad_alignment.py](scripts/evaluate_ig_vad_alignment.py)).
+
+On the example pair, IG also does not beat chance:
+
+| Speaker | m=20 best-F1 | m=50 best-F1 | vs. chance |
+|---|---|---|---|
+| 0 | 0.305 | 0.282 | 0.688 (below) |
+| 1 | 0.168 | 0.523 | 0.873 (below) |
+
+IG additionally **failed its completeness axiom** (`sum(attributions) ≈ F(x) − F(baseline)`) for speaker 1 —
+residual error 96–122%, with the wrong sign at m=50 — most plausibly because `noisy_phase=True` makes the target
+depend on the complex STFT angle, which is non-smooth in the input (phase wraps), so the straight-line integration
+path crosses many discontinuities. This is itself a genuine, reportable methodological finding about applying IG
+to phase-dependent targets, not a tuning artifact. Full details: `results/ig_vad_alignment/`.
+
+### Hypothesis 3 — maybe it's the wrong evaluation granularity?
+
+A local evaluation targeted each VAD transition individually ([evaluate_local_transition.py](scripts/evaluate_local_transition.py)):
+one attribution per transition, backpropagating from that transition's own VAD logit, compared within a ±W window
+against a matched control window elsewhere in the same clip (paired Wilcoxon). Because 4 candidate cells were
+explored in the pilot, the primary test was **pre-registered** (`TCN.TCN.23.conv1d`, W=10, α=0.05, declared in the
+script *before* the full run) to avoid multiple-comparisons fishing.
+
+- **Pilot (5 pairs, n=13 transitions):** block 23/W=10 showed a promising trend — r=+0.582, p=0.068.
+- **Full scale (35 pairs, n=107 transitions):** the primary test reversed sign — r=−0.230, p=0.040, i.e. near-
+  transition attribution is significantly **lower** than control, not higher.
+
+This sign reversal between an underpowered pilot and a properly powered pre-registered test is itself a concrete
+illustration of why pre-registration matters. The local evaluation confirms: attribution does **not** concentrate
+near true VAD transitions. Full data: `results/local_transition/`.
+
+### Conclusion — closed
+
+All three independent angles agree. This is a genuine, well-supported limitation of applying single-frame
+gradient-based attribution to this network's VAD decisions. **Investigated and closed.**
+
+### The one validated positive finding (and its correct scope)
+
+After all three nulls above, a final orientation-invariant check ([evaluate_auc_check.py](scripts/evaluate_auc_check.py))
+measured the **continuous** CAM's discriminative signal against the Silero reference directly, with no threshold or
+orientation decision baked in. AUC-ROC has the key property that it maps to $1 - \text{AUC}$ under sign inversion,
+so it measures ranking signal regardless of orientation. Result, at $n = 70$ instances (35 pairs × 2 speakers):
+
+| Layer | VAD AUC-ROC | AUC-PR | Wilcoxon vs. 0.5 |
+|---|---|---|---|
+| Block 9 | $0.417 \pm 0.192$ (range $0.039$–$0.818$) | $0.809$ | W=721.0, p=0.0023, **r=−0.420** (significantly *below* 0.5) |
+| **Block 23** | **$0.723 \pm 0.149$** (range $0.137$–$0.984$) | $0.908$ | **W=107.0, p=3.03e-11, r=+0.914** (significantly *above* 0.5) |
+
+Block 23 carries a **genuine, statistically robust ranking-level signal** about VAD timing: the continuous CAM
+correctly orders speech-active frames above inactive ones, far above chance, with a large effect size. Block 9 does
+not — it's significantly *below* 0.5. Only 3 of 70 block-23 instances fall below 0.5, with no predictable pattern
+in speaker, pair, or VAD active rate (correlation with active rate ≈ −0.06).
+
+**Why this doesn't contradict the earlier F1-based nulls.** AUC-ROC measures *ranking quality* — does the CAM place
+active frames above inactive ones — independent of any threshold or base rate. F1-vs-chance measures whether a
+single hard threshold beats a majority-class-matched guess, which is an unusually strong baseline when ~82% of
+frames are genuinely speech-active. Two consequences follow, and both are reported rather than either one alone:
+
+- **Re-calibrated F1 still doesn't beat chance.** Re-computing F1 at the Youden's-J-optimal threshold on the
+  continuous block-23 CAM gives $F1 = 0.679 \pm 0.191$ (avg. optimal threshold ≈ 0.13), vs. the chance baseline
+  $F1 = 0.815 \pm 0.118$. Converting the well-ranked continuous signal into a hard binary decision still cannot
+  beat a class-balance-matched coin flip against this high-base-rate reference. ([validate_vad_auc_f1.py](scripts/validate_vad_auc_f1.py))
+- **AUC-PR has the right baseline context too.** AUC-PR's no-skill baseline is the positive-class prevalence (here
+  $0.814$ on average), not 0.5. Block 23's AUC-PR of $0.908$ sits above that prevalence baseline (and block 9's
+  $0.809$ is essentially at it), consistent with the AUC-ROC result: real ranking signal at block 23, none at
+  block 9. ([validate_vad_auc.py](scripts/validate_vad_auc.py))
+
+So the precise, honest finding is: **Grad-CAM at the late TCN layer (block 23) carries genuine, validated
+ranking-level information about VAD timing, but not enough to beat a majority-class-matched threshold decision.**
+It is not "Grad-CAM explains VAD," and the earlier nulls at other layers/methods/granularities are not overturned.
+
+### Separate, still-valid claim — do not conflate
+
+The **MAE-vs-random-noise** finding (CAMs have genuine, non-random, speaker-specific structure; `TCN.TCN.9.conv1d`,
+validated at $N=100$ pairs — see [Full-scale validation](#full-scale-validation-n--100-pairs-200-speakers))
+**holds** and is independent of the VAD-alignment result above. One measures whether the attention maps are
+speaker-specific at all; the other whether their timing matches actual voice activity. The VAD-alignment negative
+result does not invalidate the discriminability result, and vice versa.
 
 Full per-instance results and thresholds: [vad_alignment_results.csv](results/vad_alignment/vad_alignment_results.csv),
 [vad_alignment_summary.json](results/vad_alignment/vad_alignment_summary.json).
+
+## Separation ground-truth alignment: does attribution align with the Ideal Binary Mask?
+
+A parallel investigation asked whether Grad-CAM explains the **separation** decision — which time-frequency regions
+of the mixture the network attributes to each speaker — against the **Ideal Binary Mask (IBM)** ground truth
+(`IBM(f,t) = 1` for speaker *s* iff `|S_s(f,t)| > |S_other(f,t)|`, computed from the two clean pre-mix sources).
+Unlike the Silero VAD reference, IBM is the literal signal the mixture was built from, so this ground truth is as
+clean as exists. This thread is also closed.
+
+**Reference/target setup**: Grad-CAM backpropagates from the network's predicted mask value at a chosen (freq, time)
+bin for a chosen speaker ([evaluate_separation_alignment.py](scripts/evaluate_separation_alignment.py)); the chosen
+bin is where the reference speaker dominates most confidently. A class-balance-matched Bernoulli baseline matched to
+the IBM active rate provides the chance level (same approach as the VAD investigation).
+
+### The permutation bug (caught and fixed)
+
+The initial pilot produced a ceiling accuracy *worse than chance* (e.g. 0.088 vs. 0.697) — a strong sign of a bug,
+not a finding. Two-speaker separation networks are trained with permutation-invariant training (PIT), so the
+network's output slot 0/1 doesn't consistently correspond to "true speaker 0/1." Comparing against the wrong
+assignment produced the bogus ceiling. Computing the ceiling under both assignments confirmed it: swapping raised
+the network's own mask-vs-IBM F1 from 0.08–0.26 to 0.57–0.77 on every pilot instance. The corrected pipeline uses
+the PIT-style best-permutation assignment consistently for the ceiling, the IBM reference, the CAM target bin, and
+the chance baseline. Corrected ceiling: F1 ≈ 0.63–0.67 at full scale (n=70) — confirming the network genuinely
+separates well.
+
+### The full-scale below-chance result, and ruling out an inversion
+
+At full scale (35 pairs × 2 speakers), the mask-value-targeted Grad-CAM came out **significantly below** the
+chance baseline at both layers (block 9 F1 = 0.190, block 23 F1 = 0.206, vs. chance F1 ≈ 0.502; paired Wilcoxon
+p < 10⁻¹⁰, r ≈ −0.93 to −0.99, n=70). "Significantly below chance" is itself a red flag — genuine no-signal should
+land *around* chance, not below it — so a flip test checked whether inverting the thresholded CAM fixed it. It did
+(F1 ≈ 0.62), which initially suggested a sign inversion bug.
+
+But the orientation-invariant check ([evaluate_auc_check.py](scripts/evaluate_auc_check.py)) settled it:
+AUC-ROC of the continuous CAM vs. IBM is ≈ 0.497–0.498 on both layers, tightly clustered around 0.5 — **no real
+discriminative signal in either orientation**. The flip test's apparent improvement was a base-rate/threshold
+artifact: the min-max-normalized CAM is so sparse that its thresholded active rate is degenerate (~0.0 predicted
+active everywhere), so the all-inactive map and its flip score differently purely through base-rate asymmetry, with
+zero real positional signal. The earlier "ReLU sign" explanation was itself wrong and is not relied on.
+
+**Conclusion — closed.** The network's separation predictions are strong (corrected ceiling F1 ≈ 0.63), but
+single-point Grad-CAM attribution of those decisions carries no measurable alignment with the IBM ground truth in
+either orientation. Full data: `results/separation_alignment/`, `results/auc_check/`.
 
 ## Full-scale validation (N = 100 pairs, 200 speakers)
 
@@ -346,11 +484,21 @@ condition, plus [robustness_summary.json](results/robustness/robustness_summary.
 
 ## Limitations / Next Steps
 
-- **Grad-CAM does not demonstrably align with ground-truth voice-activity timing** — the CAM's best-F1 ($0.522$)
-  does not exceed a class-balance-matched chance baseline ($F1 \approx 0.815$) against the same Silero-VAD
-  reference. This is a genuine negative result, not yet resolved. See
-  [VAD ground-truth alignment](#vad-ground-truth-alignment-iou--f1) for the full numbers.
+- **VAD timing alignment — investigated and closed**: single-frame gradient-based attribution was tested across three
+  independent methods (global frame-by-frame F1 across 6 hook layers, Integrated Gradients, and a pre-registered
+  local per-transition test at full scale). Two caveats worth stating precisely: a final orientation-invariant check
+  found a **genuine, validated ranking-level signal at the late TCN layer (block 23)** — continuous-CAM AUC-ROC =
+  $0.723$ (p≈3e-11, n=70, r=+0.914) — but this does **not** translate into beating a majority-class-matched threshold
+  decision (re-calibrated F1 = $0.679$ vs. the $0.815$ chance baseline). See
+  [VAD ground-truth alignment](#vad-ground-truth-alignment-does-attribution-align-with-vad-timing) for the full,
+  closed investigation. Block 9 shows no such signal (AUC=0.417, significantly below 0.5).
+- **Separation (IBM) alignment — investigated and closed**: the network's own separation predictions are strong
+  (PIT-corrected ceiling F1 ≈ 0.63–0.67), but single-point Grad-CAM attribution carries **no** measurable alignment
+  with the Ideal Binary Mask ground truth in either orientation (AUC-ROC ≈ 0.497–0.498 at both layers). An initial
+  below-chance F1 was traced to a permutation-inversion measurement bug (caught and fixed), and a subsequent apparent
+  flip-test "fix" was itself traced to a sparse-CAM/base-rate artifact rather than a real signal. See
+  [Separation ground-truth alignment](#separation-ground-truth-alignment-does-attribution-align-with-the-ideal-binary-mask).
 - **Accent diversity (genuinely open)**: LibriSpeech carries no accent labels, so even the full-scale ($N=100$) run cannot measure accent robustness. This requires a different, accent-labeled corpus (e.g. Common Voice, VCTK) as a distinct next step.
-- **Single Target Layer**: Multi-pair, held-out, and full-scale validations fix the target layer to `TCN.TCN.9.conv1d` (the layer selected via Part A's ablation). A multi-layer ensemble **was** evaluated and explicitly rejected — see [Multi-layer ensemble vs. single-layer](#multi-layer-ensemble-vs-single-layer-tested-not-adopted): it did not clearly beat the single layer, so it was not adopted rather than left untested.
+- **Single Target Layer (for the discriminability/MAE result)**: multi-pair, held-out, and full-scale validations fix the target layer to `TCN.TCN.9.conv1d` (the layer selected via Part A's ablation). A multi-layer ensemble **was** evaluated and explicitly rejected — see [Multi-layer ensemble vs. single-layer](#multi-layer-ensemble-vs-single-layer-tested-not-adopted): it did not clearly beat the single layer, so it was not adopted rather than left untested.
 - **Noise / reverberation**: robustness **has** been tested — see [Robustness to noise and reverberation](#robustness-to-noise-and-reverberation): MAE-discriminability holds under noise and reverb, while VAD-F1 alignment degrades specifically under noise (not reverb). The noise proxy is a babble-sum of leftover LibriSpeech utterances, not a real ambient-noise corpus such as [WHAM!](http://wham.whisper.ai/), and the VAD-alignment reference is Silero VAD output, not hand-labeled ground truth.
 - **CPU Execution**: Verification and statistical benchmarks were conducted on CPU (`--device cpu`). GPU execution is supported via `--device cuda`.
