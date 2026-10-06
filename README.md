@@ -11,7 +11,8 @@ speaker-separation/VAD network — adapted from image-based Grad-CAM and validat
 **Speaker discriminability (validated).** The speaker-vs-speaker Grad-CAM difference (MAE) is far lower than a
 random-noise control across N=100 pairs / 200 distinct speakers (p<10⁻¹⁶, effect size r≥0.92, consistent across
 gender and pitch subgroups), on a disjoint held-out set, and under simulated noise and reverberation. The CAMs carry
-genuine, non-random, speaker-specific structure.
+genuine, non-random, speaker-specific structure. This shows the CAMs differ meaningfully between speakers — not that
+this difference spatially aligns with where each speaker actually dominates (tested separately below, where it doesn't).
 
 **VAD timing, at the ranking level (validated).** At the late TCN layer `TCN.TCN.23.conv1d`, the continuous VAD-logit
 CAM carries real discriminative signal about voice-activity timing: AUC-ROC = **0.723 ± 0.149** (p ≈ 3×10⁻¹¹, n=70,
@@ -20,6 +21,11 @@ decision, because ~82% of frames are genuinely speech-active (re-calibrated F1 =
 0.815).
 
 ![Validated VAD-timing signal at block 23](results/vad_auc_validation/vad_auc_validation_figure.png)
+
+*Two AUC numbers appear here: the per-instance mean AUC (0.723) is the validated statistic used for the Wilcoxon
+test, while the pooled ROC-curve legend shows the pooled AUC (0.687), an aggregate visualization that combines
+cross-instance comparisons not part of the per-instance test — same direction and conclusion, slightly different
+magnitude, expected behavior.*
 
 ## What Grad-CAM does not explain
 
