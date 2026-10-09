@@ -85,6 +85,39 @@ maps to 1−AUC under sign inversion, so it's orientation-invariant):
 - Block 9: AUC = 0.417 (p=0.0023, r=−0.420) — significantly *below* 0.5, no positive signal.
 
 This doesn't contradict the F1 nulls: AUC measures ranking quality independent of threshold/base rate, while
+F1 is a thresholded decision metric against a high-base-rate reference. The block-23 AUC finding is retained as the
+single validated positive result in the README.
+
+---
+
+## Phase 4 — MAE null controls (2026-10-09)
+
+The original "speaker discriminability" finding (real MAE 0.233 vs. uniform-noise 0.416, p=9e-17, N=100) was found
+to be **insufficiently controlled**. The uniform-noise baseline does not preserve the maps' value distributions
+(sparsity), so the gap could be explained by sparsity alone rather than any speaker-dependent temporal alignment.
+
+Pre-registered script: `scripts/evaluate_mae_null_controls.py` (committed before execution, commit `59b7c40`).
+
+### 2A — MAE null controls (block 9, N=100, PRIMARY)
+
+| Null control | Null MAE | Wilcoxon p | Rank-biserial r |
+|---|---|---|---|
+| N1 circular-shift (preserves value dist. + temporal smoothness) | 0.253 ± 0.087 | 0.487 | −0.080 |
+| N2 full temporal permutation (secondary) | 0.252 ± 0.087 | 0.462 | −0.085 |
+| N3 constant-map baseline (secondary) | 0.208 ± 0.108 | 5.5e-09 | +0.672 |
+
+The real MAE is **not** significantly below N1 or N2. The apparent discriminability is an artifact of the maps'
+sparsity, not speaker-dependent temporal alignment. The claim is removed from the README's positive findings.
+
+### 2B — Speaker-specificity (block 23, n=50 eligible, PRIMARY)
+
+Exclusive-activity AUC = 0.519 ± 0.310 vs. 0.5: p=0.630. No evidence the CAM is speaker-specific in the intended
+sense (frames where exactly one speaker is active are not ranked above the reverse). Own-vs-other ΔAUC = +0.024
+(secondary, p=0.089) — borderline, not significant at α=0.05.
+
+The term "speaker-specific" has been removed from the README; the CAMs carry non-random structure (vs. uniform
+noise), but that structure does not discriminate between speakers in the intended sense.
+
 F1-vs-chance is a hard-threshold decision against a strong majority-class baseline. Re-calibrating F1 at the
 Youden's-J-optimal threshold still gives 0.679 < 0.815 chance. AUC-PR baselined against the 0.814 prevalence gives
 0.908 (block 23) vs. 0.809 (block 9), consistent with the AUC-ROC result.

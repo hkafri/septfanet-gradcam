@@ -29,6 +29,11 @@ import torch
 from silero_vad import get_speech_timestamps, load_silero_vad
 from sklearn.metrics import roc_auc_score
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 gradcam_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(gradcam_root))
 

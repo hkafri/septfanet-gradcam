@@ -8,27 +8,24 @@ speaker-separation/VAD network — adapted from image-based Grad-CAM and validat
 
 ## What Grad-CAM successfully explains
 
-**Speaker discriminability (validated).** The speaker-vs-speaker Grad-CAM difference (MAE) is far lower than a
-random-noise control across N=100 pairs / 200 distinct speakers (p<10⁻¹⁶, effect size r≥0.92, consistent across
-gender and pitch subgroups), on a disjoint held-out set, and under simulated noise and reverberation. The CAMs carry
-genuine, non-random, speaker-specific structure. This shows the CAMs differ meaningfully between speakers — not that
-this difference spatially aligns with where each speaker actually dominates (tested separately below, where it doesn't).
-
 **VAD timing, at the ranking level (validated).** At the late TCN layer `TCN.TCN.23.conv1d`, the continuous VAD-logit
 CAM carries real discriminative signal about voice-activity timing: AUC-ROC = **0.723 ± 0.149** (p ≈ 3×10⁻¹¹, n=70,
 rank-biserial r = +0.914). The ranking signal is real — but it does **not** beat a majority-class-matched threshold
 decision, because ~82% of frames are genuinely speech-active (re-calibrated F1 = 0.679 vs. a chance baseline of
 0.815).
 
-![Validated VAD-timing signal at block 23](results/vad_auc_validation/vad_auc_validation_figure.png)
 
-*Two AUC numbers appear here: the per-instance mean AUC (0.723) is the validated statistic used for the Wilcoxon
-test, while the pooled ROC-curve legend shows the pooled AUC (0.687), an aggregate visualization that combines
-cross-instance comparisons not part of the per-instance test — same direction and conclusion, slightly different
-magnitude, expected behavior.*
-
-## What Grad-CAM does not explain
-
+- **Speaker discriminability (MAE, pre-registered null controls)**: the speaker-vs-speaker MAE is *not*
+  significantly different from value-distribution-preserving nulls (circular-shift null N1: p=0.487; full temporal
+  permutation null N2: p=0.462) at the pre-registered layer `TCN.TCN.9.conv1d` on N=100 pairs. The earlier
+  "discriminability" result (real MAE 0.233 vs. uniform-noise 0.416, p=9e-17) is **not sufficient** to claim the
+  CAMs carry speaker-discriminative structure — that difference is explained by the maps' value distributions
+  (sparsity), not by any genuine speaker-dependent temporal alignment. The claim is removed from the positive
+  findings above and placed here as a null result. (Pre-registered script: `scripts/evaluate_mae_null_controls.py`.)
+- **Speaker-specificity (exclusive-activity AUC, pre-registered)**: at `TCN.TCN.23.conv1d`, restricting to frames
+  where exactly one speaker is active, the CAM does not rank "speaker s active, other not" frames above "other
+  active, speaker s not" frames above chance (exclusive-activity AUC = 0.519 vs. 0.5, p=0.630, n=50 eligible).
+  The CAMs are not speaker-specific in the intended sense.
 - **VAD timing at block 9** (the layer selected for the discriminability result): no positive signal (AUC = 0.417,
   significantly *below* 0.5, p=0.002).
 - **VAD timing via thresholded F1**: below the chance baseline at every layer tested (best 0.706 vs. 0.815) — the
@@ -74,6 +71,9 @@ python scripts/evaluate_multi_pair_gradcam.py --librispeech-root data/librispeec
 python scripts/fetch_librispeech_fullscale.py --num-speakers 130 --source parquet
 python scripts/evaluate_fullscale_gradcam.py --device cpu --target-pairs 100
 
+# MAE null-control and speaker-specificity diagnostics
+python scripts/evaluate_mae_null_controls.py
+
 # VAD-alignment and separation-alignment diagnostics
 python scripts/evaluate_vad_alignment.py --target-layer TCN.TCN.23.conv1d --output-suffix _block23
 python scripts/diagnose_grad_spread.py
@@ -88,14 +88,32 @@ python scripts/make_vad_auc_figure.py
 
 ## Results summary
 
-### Discriminability (speaker-vs-speaker MAE vs. random-noise control)
+### MAE discriminability vs. null controls (pre-registered, N=100 pairs, block 9)
 
-| Subset | N pairs | Real MAE | Random-control MAE | Wilcoxon p | Rank-biserial r |
-|---|---|---|---|---|---|
-| Selection | 20 | 0.256 ± 0.109 | 0.409 ± 0.057 | 3.95e-04 | 0.838 |
-| Held-out | 15 | 0.258 ± 0.065 | 0.419 ± 0.059 | 1.22e-04 | 0.983 |
-| Pooled | 35 | 0.257 ± 0.093 | 0.413 ± 0.058 | 1.38e-07 | 0.902 |
-| **Full-scale** | **100** | **0.233 ± 0.091** | **0.416 ± 0.051** | **9.0e-17** | **0.958** |
+The original finding (real MAE 0.233 vs. uniform-noise 0.416, p=9e-17) is reproduced below, followed by the
+pre-registered null controls that preserve the maps' value distributions and temporal smoothness.
+
+| Comparison | Real MAE | Null MAE | Wilcoxon p | Rank-biserial r |
+|---|---|---|---|---|
+| Real vs. uniform-noise control (original, insufficient) | 0.233 ± 0.091 | 0.416 ± 0.051 | 9.0e-17 | −0.917 |
+| Real vs. **N1 circular-shift null** (PRIMARY) | 0.243 ± 0.100 | 0.253 ± 0.087 | 0.487 | −0.080 |
+| Real vs. **N2 full-permutation null** (secondary) | 0.243 ± 0.100 | 0.252 ± 0.087 | 0.462 | −0.085 |
+| Real vs. **N3 constant-map baseline** (secondary) | 0.243 ± 0.100 | 0.208 ± 0.108 | 5.5e-09 | +0.672 |
+
+The MAE is *not* significantly below the value-distribution-preserving nulls (N1, N2). The apparent discriminability
+is an artifact of the maps' sparsity (value distribution), not speaker-dependent temporal alignment. The N3 result
+(real > constant) is a secondary check that the maps are not simply degenerate.
+
+### Speaker-specificity (exclusive-activity AUC, pre-registered, block 23)
+
+Restricting to frames where exactly one speaker is active (n=50 eligible instances):
+
+| Test | AUC | Null | Wilcoxon p | Rank-biserial r |
+|---|---|---|---|---|
+| Exclusive-activity AUC vs. 0.5 (PRIMARY) | 0.519 ± 0.310 | 0.5 | 0.630 | +0.086 |
+| Own-vs-other ΔAUC (secondary) | +0.024 | 0 | 0.089 | +0.136 |
+
+No evidence that the CAM is speaker-specific in the intended sense.
 
 ### VAD-timing ranking signal (continuous-CAM AUC-ROC, n=70)
 
@@ -115,6 +133,9 @@ python scripts/make_vad_auc_figure.py
 
 - **Pre-sigmoid VAD logit** (not the saturating post-sigmoid probability) as the Grad-CAM target, exposed as
   `model.vad_logits` in [network/model/model.py](network/model/model.py) without changing the model's normal output.
+- **Pre-registered null controls** for the MAE discriminability claim: circular-shift (N1), full temporal
+  permutation (N2), and constant-map (N3) baselines that preserve the maps' value distributions and temporal
+  smoothness. The original uniform-noise control was found insufficient on its own.
 - **MAE vs. a random-noise control**, not max-diff (max-diff reads ~1.0 for any two sparse maps, so it's uninformative).
 - **Non-monotonic entropy penalty** in layer selection (penalize deviation from target entropy 0.65), so neither
   diffuse-uniform nor single-pixel-spike maps are rewarded. Selected `TCN.TCN.9.conv1d` for the discriminability result.
