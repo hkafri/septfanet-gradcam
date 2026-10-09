@@ -128,8 +128,9 @@ python scripts/make_vad_auc_figure.py
   references and adapts that architecture (`network/model/model.py`, with the `vad_logits` addition) but does **not**
   redistribute the original repository's code or checkpoints.
 - **Paper**:
-  > Moradi, M., Gannot, S. et al. "Single-microphone speaker separation and voice activity detection in noisy and
-  > reverberant environments." *EURASIP Journal on Audio, Speech, and Music Processing* (2025).
+  > Opochinsky, R., Moradi, M., Gannot, S. "Single-microphone speaker separation and voice activity detection in noisy and
+  > reverberant environments." *EURASIP Journal on Audio, Speech, and Music Processing* (2025). DOI 10.1186/s13636-025-00404-7.
+  > (R. Opochinsky and M. Moradi contributed equally, per the arXiv version.)
 - **License note**: as of writing, the `Sep-TFAnet-VAD` repository does not publish a `LICENSE` file. No permissive
   reuse rights are assumed. This repo only references/attributes that network's architecture and weights for
   research/interpretability purposes; it does not redistribute them. You must obtain the weights directly from the
