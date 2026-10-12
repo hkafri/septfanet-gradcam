@@ -228,6 +228,58 @@ def wilcoxon_paired(a, b):
             "rank_biserial_r": float((w_pos - w_neg) / tot) if tot > 0 else 0.0, "n": int(len(a))}
 
 
+def measure_t60_schroeder(rir, fs=SAMPLE_RATE):
+    """Measured T60 via Schroeder backward integration of the RIR energy decay."""
+    e = np.asarray(rir, dtype=np.float64) ** 2
+    edc = np.cumsum(e[::-1])[::-1]
+    edc_db = 10 * np.log10(np.maximum(edc / max(edc.max(), 1e-20), 1e-20))
+    # fit over -5..-35 dB (T30 approach), extrapolate to 60 dB
+    t = np.arange(len(edc_db)) / fs
+    mask = (edc_db <= -5) & (edc_db >= -35)
+    if mask.sum() < 5:
+        return float("nan")
+    slope, _ = np.polyfit(t[mask], edc_db[mask], 1)
+    return float(-60.0 / slope) if slope < 0 else float("nan")
+
+
+def get_rir_and_delay(t60, src_pos, mic_pos, room_dim, fs=SAMPLE_RATE):
+    """Return (RIR, direct-path delay in samples) for a reverb configuration."""
+    e_absorption, max_order = pra.inverse_sabine(t60, list(room_dim))
+    room = pra.ShoeBox(list(room_dim), fs=fs, materials=pra.Material(e_absorption), max_order=max_order)
+    room.add_source(list(src_pos))
+    room.add_microphone(list(mic_pos))
+    room.compute_rir()
+    rir = room.rir[0][0]
+    # direct-path delay = first significant peak of the RIR
+    delay = int(np.argmax(np.abs(rir) > 0.3 * np.abs(rir).max()))
+    return rir, delay
+
+
+def validate_degradations(sig0, sig1, babble_track, pair_idx):
+    """Step 3: realized SNR, measured T60, and direct-path delay per condition."""
+    report = {}
+    # realized SNR for the noise conditions (relative to the reverberant-free mixture)
+    clean_mix = normalize_audio(sig0 + sig1)
+    for snr in SNR_VALUES:
+        noisy = add_noise_at_snr(clean_mix, babble_track, snr)
+        sig_p = np.mean(clean_mix ** 2)
+        noise_p = np.mean((noisy - clean_mix) ** 2)
+        realized = 10 * np.log10(sig_p / max(noise_p, 1e-12))
+        report[f"noise_snr_{snr}"] = {"nominal_snr_db": snr, "realized_snr_db": float(realized)}
+    # measured T60 + direct-path delay for the reverb conditions
+    for t60 in T60_VALUES:
+        rng = np.random.default_rng(9000 + pair_idx)
+        room_dim = (6.0 + rng.uniform(-0.5, 0.5), 5.0 + rng.uniform(-0.5, 0.5), 3.0)
+        mic_pos = (room_dim[0] / 2, room_dim[1] / 2, 1.5)
+        src0 = (rng.uniform(1.0, room_dim[0] - 1.0), rng.uniform(1.0, room_dim[1] - 1.0), 1.5)
+        rir, delay = get_rir_and_delay(t60, src0, mic_pos, room_dim)
+        report[f"reverb_t60_{t60}"] = {"nominal_t60_s": t60,
+                                      "measured_t60_s": measure_t60_schroeder(rir),
+                                      "direct_path_delay_samples": delay,
+                                      "direct_path_delay_ms": float(delay / SAMPLE_RATE * 1000)}
+    return report
+
+
 def boot_ci_mean(values, n_boot=N_BOOT, seed=0):
     v = np.asarray(values, float)
     v = v[~np.isnan(v)]
@@ -273,6 +325,19 @@ def main():
     babble = build_babble_track(unused, np.random.default_rng(42))
     print(f"[*] subset={args.subset}, {len(pairs)} pairs, {len(unused)} leftover utts for babble")
 
+    # ---- Step 3: validate the degradation itself on the first pair ----
+    print("\n[Step 3] Degradation validation (pair 0)")
+    p0sig0, p0sig1 = load_and_pad(pairs[0]["path_0"]), load_and_pad(pairs[0]["path_1"])
+    val = validate_degradations(p0sig0, p0sig1, babble, 0)
+    for cond, d in val.items():
+        if "realized_snr_db" in d:
+            print(f"  {cond}: nominal SNR {d['nominal_snr_db']} dB -> realized {d['realized_snr_db']:.2f} dB")
+        else:
+            print(f"  {cond}: nominal T60 {d['nominal_t60_s']}s -> measured {d['measured_t60_s']:.3f}s | "
+                  f"direct-path delay {d['direct_path_delay_samples']} samples = {d['direct_path_delay_ms']:.2f} ms "
+                  f"(< 16 ms = one STFT frame: {'OK' if d['direct_path_delay_samples'] < 256 else 'EXCEEDS'})")
+    out_validation = val
+
     # per-pair per-condition pair-level AUC for CAM (block23, block9) and network VAD
     cam23 = {c: [] for c in CONDITIONS}
     cam9 = {c: [] for c in CONDITIONS}
@@ -312,7 +377,8 @@ def main():
 
     clean = np.array(cam23["clean"], float)
     out = {"pre_registration": "see module docstring", "subset": args.subset,
-           "n_pairs": len(pairs), "margin": MARGIN, "conditions": {}}
+           "n_pairs": len(pairs), "margin": MARGIN, "conditions": {},
+           "degradation_validation": out_validation}
     rows = []
     for cond in CONDITIONS:
         a23 = np.array(cam23[cond], float)

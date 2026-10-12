@@ -27,9 +27,9 @@ the real-vs-random separation gap relative to single-layer block 9. Artifacts: `
 
 The speaker-vs-speaker MAE is far lower than a random-noise control, validated across selection (N=20), a
 zero-overlap held-out set (N=15), pooled (N=35), and full-scale (N=100 pairs, 200 speakers, with gender/pitch
-subgroup breakdowns). Robustness to noise and reverberation tested (the MAE discriminability holds; VAD-F1 degrades
-mildly under noise, not reverb). This is the still-valid positive finding, kept separate from the VAD-alignment
-investigation below.
+subgroup breakdowns). **(Superseded: this MAE "discriminability" finding was later shown to be an artifact of the
+maps' value distributions — see Phase 4. The robustness test referenced here used the same MAE metric and is likewise
+superseded — see Phase 8.)**
 
 ## Phase 3 — VAD ground-truth alignment (the long investigation)
 
@@ -228,6 +228,55 @@ instances. Script: `scripts/evaluate_pair_level.py`. Artifacts: `results/pair_le
 p=7.4e-11 across pairs); block 9 stays below 0.5; the 2B exclusive-activity test stays non-significant and
 underpowered (pair-level CI [0.406, 0.554] still excludes a ~0.2 shift). Clustering inflates neither the point
 estimates nor the significance — the within-pair correlation is weak enough that instance-level and pair-level agree.
+
+---
+
+## Phase 8 — Robustness of the validated VAD signal (AUC-based) (2026-10-12)
+
+The earlier robustness analysis measured speaker-vs-speaker MAE vs. a uniform-noise control — a metric later shown to
+be uninformative (sparse maps beat uniform noise trivially), so those numbers are superseded. This re-tests robustness
+on the one validated, replicated statistic: the block-23 VAD-logit CAM ranking speech-active frames above inactive
+ones (pair-level AUC-ROC vs. the speaker's own clean-source reference VAD).
+
+Pre-registered script: `scripts/evaluate_robustness_auc.py` (commit `ad0d44c`, before execution).
+Artifacts: `results/robustness_auc/robustness_auc_heldout.{csv,json}` and `..._dev.{csv,json}`.
+
+### Degradation validation (Step 3)
+
+- Realized SNR matches nominal exactly (10/5/0 dB -> 10.00/5.00/0.00 dB).
+- Measured T60 (Schroeder) close to nominal: 0.2 -> 0.164 s; 0.4 -> 0.390 s; 0.6 -> 0.637 s.
+- Direct-path delay = 68 samples = 4.25 ms < 16 ms (one STFT frame) — no reference shift needed.
+- Babble built from 8 leftover LibriSpeech utterances from speakers **not** in the mixture.
+
+### Reference VAD choice (Step 4)
+
+Silero VAD on the clean, dry sources (ground truth for when each speaker talks, independent of the degradation).
+Consequence: in reverberation, reverberant tails extend acoustic energy beyond dry-source activity, so the reference
+under-marks tail frames — the reverb AUC numbers are conservative.
+
+### Results (held-out 65 pairs, block 23, pair-level)
+
+| Condition | CAM AUC [95% CI] | Persists? (Holm) | Δ vs clean [95% CI] | Robust? (−0.06) | Network-VAD AUC |
+|---|---|---|---|---|---|
+| clean | 0.681 [0.649, 0.713] | — | — | — | 0.827 |
+| reverb T60=0.2 | 0.687 [0.652, 0.720] | yes (9e-10) | +0.006 [−0.026, +0.037] | **yes** | 0.845 |
+| reverb T60=0.4 | 0.665 [0.630, 0.699] | yes (1e-09) | −0.016 [−0.049, +0.017] | **yes** | 0.830 |
+| reverb T60=0.6 | 0.651 [0.623, 0.679] | yes (3e-10) | −0.030 [−0.064, +0.003] | borderline | 0.843 |
+| noise SNR=10 | 0.644 [0.620, 0.667] | yes (3e-10) | −0.037 [−0.069, −0.004] | borderline | 0.855 |
+| noise SNR=5 | 0.614 [0.591, 0.635] | yes (1e-09) | −0.067 [−0.103, −0.031] | no | 0.844 |
+| noise SNR=0 | 0.577 [0.552, 0.604] | yes (1e-06) | −0.103 [−0.139, −0.067] | no | 0.815 |
+| combo T60=0.4+SNR=5 | 0.625 [0.601, 0.649] | yes (7e-10) | −0.056 [−0.090, −0.021] | no | 0.836 |
+
+Two results are **borderline** per the pre-registered rule (CI lower bound within 0.01 of the −0.06 margin):
+reverb T60=0.6 (−0.064) and noise SNR=10 (−0.069). Per the discipline, these are reported as borderline, not called
+robust.
+
+**Net (held-out, block 23):** the VAD-timing ranking signal **persists** (above chance, Holm-significant) in every
+tested condition including 0 dB babble, and is **robust within the margin** under mild-to-moderate reverberation
+(T60 0.2–0.4 s). It degrades beyond the margin under stronger noise (SNR ≤ 5 dB) and in the combined condition. The
+network's own VAD stays high everywhere (0.81–0.86), so the CAM-AUC drop under strong noise reflects the *explanation*
+degrading faster than the network, not the network failing. Development-set (35 pairs, secondary) results are
+consistent (reverb robust at all T60; noise degrades at SNR ≤ 5; same direction).
 
 
 

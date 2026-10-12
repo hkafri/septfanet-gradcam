@@ -80,6 +80,8 @@ python scripts/evaluate_mae_null_controls.py
 python scripts/evaluate_union_auc_check.py   # exploratory: mixture-activity vs target-speaker check
 python scripts/evaluate_pair_level.py        # pair-level clustered re-analysis (resamples pairs, not instances)
 python scripts/evaluate_vad_replication.py   # held-out replication of the block-23 VAD signal
+python scripts/evaluate_robustness_auc.py --subset heldout   # AUC-based robustness (noise + reverberation)
+python scripts/evaluate_robustness_auc.py --subset dev       # same, on the development pairs (secondary)
 
 # VAD-alignment and separation-alignment diagnostics
 python scripts/evaluate_vad_alignment.py --target-layer TCN.TCN.23.conv1d --output-suffix _block23
@@ -157,6 +159,40 @@ block 23: p=7.4e-11, r=+0.929 across pairs; block 9 stays below 0.5).
 |---|---|---|
 | Block 9 | 0.497 ± 0.068 | No signal (at chance) |
 | Block 23 | 0.498 ± 0.099 | No signal (at chance) |
+
+### Robustness of the block-23 VAD-timing signal (AUC-based, pair-level, held-out 65 pairs)
+
+Pre-registered (`scripts/evaluate_robustness_auc.py`). Pair-level AUC-ROC of the block-23 VAD-logit CAM against the
+speaker's own clean-source reference VAD, under simulated reverberation (independent RIR per speaker) and babble
+noise (LibriSpeech leftovers, speakers not in the mixture). Primary tests Holm-corrected across the 7 degraded
+conditions at α=0.05. "Persists" = condition AUC > 0.5 (Holm-adj). "Robust" = lower bound of the 95% pair-bootstrap CI
+of (AUC_condition − AUC_clean) above the −0.06 non-inferiority margin. Borderline flags: a CI bound within 0.01 of the
+margin.
+
+| Condition | CAM AUC [95% CI] | Persists? | Δ vs clean [95% CI] | Robust? | Network-VAD AUC [95% CI] |
+|---|---|---|---|---|---|
+| clean (reference) | 0.681 [0.649, 0.713] | — | — | — | 0.827 [0.779, 0.872] |
+| reverb T60=0.2 s | 0.687 [0.652, 0.720] | yes (p=9e-10) | +0.006 [−0.026, +0.037] | **yes** | 0.845 [0.799, 0.888] |
+| reverb T60=0.4 s | 0.665 [0.630, 0.699] | yes (p=1e-09) | −0.016 [−0.049, +0.017] | **yes** | 0.830 [0.782, 0.874] |
+| reverb T60=0.6 s | 0.651 [0.623, 0.679] | yes (p=3e-10) | −0.030 [−0.064, +0.003] | borderline* | 0.843 [0.797, 0.885] |
+| noise SNR=10 dB | 0.644 [0.620, 0.667] | yes (p=3e-10) | −0.037 [−0.069, −0.004] | borderline* | 0.855 [0.821, 0.889] |
+| noise SNR=5 dB | 0.614 [0.591, 0.635] | yes (p=1e-09) | −0.067 [−0.103, −0.031] | no | 0.844 [0.814, 0.874] |
+| noise SNR=0 dB | 0.577 [0.552, 0.604] | yes (p=1e-06) | −0.103 [−0.139, −0.067] | no | 0.815 [0.786, 0.843] |
+| combo T60=0.4 + SNR=5 | 0.625 [0.601, 0.649] | yes (p=7e-10) | −0.056 [−0.090, −0.021] | no | 0.836 [0.805, 0.867] |
+
+\* *Borderline: the lower CI bound of the degradation is within 0.01 of the −0.06 margin (T60=0.6: −0.064; SNR=10:
+−0.069). Per the pre-registration these are reported as borderline, not called robust.*
+
+**What can be claimed (held-out, block 23):** the VAD-timing ranking signal **persists** (stays above chance, Holm-adj
+significant) in **every** tested condition, including 0 dB babble. It is **robust within the −0.06 margin** only under
+mild-to-moderate reverberation (T60 = 0.2, 0.4 s); it is borderline at strong reverberation (T60 = 0.6) and mild noise
+(SNR = 10 dB), and it degrades beyond the margin at stronger noise (SNR ≤ 5 dB) and in the combined condition. The
+network's own VAD output stays high in all conditions (0.81–0.86), so the CAM-AUC drop under strong noise is not simply
+the network failing — the explanation degrades faster than the network's VAD. Reference VAD is Silero on the clean dry
+sources; in reverberation the dry reference under-marks reverberant-tail frames, so the reverb numbers are conservative.
+
+*(Superseded: an earlier MAE-vs-uniform-noise robustness table is no longer used — that metric was later shown to be
+uninformative, because sparse maps beat uniform noise trivially. See the investigation log.)*
 
 ## Methodology (key decisions)
 
