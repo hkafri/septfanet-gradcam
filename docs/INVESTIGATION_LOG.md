@@ -118,6 +118,46 @@ sense (frames where exactly one speaker is active are not ranked above the rever
 The term "speaker-specific" has been removed from the README; the CAMs carry non-random structure (vs. uniform
 noise), but that structure does not discriminate between speakers in the intended sense.
 
+---
+
+## Phase 5 — Closing the gaps (2026-10-12)
+
+Follow-up on the pre-registered 2A/2B report. Script: `scripts/evaluate_union_auc_check.py` (exploratory).
+Artifacts: `results/mae_null_controls/union_auc_check.{json,csv}`.
+
+### 5.1 Baseline reproduction (Step 1)
+
+The original full-scale statistic reproduces **exactly** from the stored CSV (N=100, real MAE **0.2333 ± 0.0909**,
+uniform-noise 0.4157 ± 0.0513, p = 9.0e-17). The 0.243 in the null run is a **sample-composition difference**: the
+original run used each speaker's exact saved utterance; the null script resolved each speaker to the
+alphabetically-first utterance (only 84/100 pairs identical). Same 200 speakers, different utterance for some pairs.
+Conclusion unchanged. **0.233 is authoritative.**
+
+### 5.2 2B sample size and eligible frames (Step 2)
+
+- Eligible instances: **50/200** in the pre-registered run (40/200 on exact pairs — same cause as above).
+- Median |E_s| = |E_o| = **12** across all instances (23 among eligible); mean frame agreement between the two
+  reference VADs = **0.782**. Exclusive-activity frames are scarce.
+- 2B secondary ΔAUC: block 23 = **+0.024** (p=0.089, r=+0.136, n=200); block 9 = **+0.004** (p=0.903).
+- 2A secondary (block 23): N1 p=0.672 (r=−0.049); N2 p=0.818 (r=−0.027); N3 p=6.0e-09 (r=+0.670) — same as block 9.
+
+### 5.3 Exploratory union-AUC check (Step 3)
+
+Does the validated block-23 ranking signal track the target speaker or the overall mixture activity?
+- `AUC_own = 0.695 ± 0.179` (prevalence 0.792); `AUC_union = 0.709 ± 0.174` (prevalence 0.897).
+- Δ(union−own) = +0.013; frac(union ≥ own) = 0.680; paired Wilcoxon p = 0.124 (r=+0.087, n=200).
+
+AUC_union ≥ AUC_own holds (68% of instances, paired difference n.s.). **Consistent with the map tracking overall
+speech activity in the mixture rather than the target speaker specifically.** The remaining positive VAD claim is
+reworded accordingly.
+
+### 5.4 Power of 2B (Step 4)
+
+n_eligible = 40–50 (vs. 70 for the validated VAD result). 80%-power detectable standardized effect dz ≈ 0.40–0.44 ⇒
+detectable exclusive-AUC shift ≈ **0.124–0.137** (AUC ≳ 0.62–0.64). The observed 0.519 is far below that, so 2B is
+**underpowered**. It supports "speaker specificity **not shown**", **not** "not speaker-specific". README updated.
+
+
 F1-vs-chance is a hard-threshold decision against a strong majority-class baseline. Re-calibrating F1 at the
 Youden's-J-optimal threshold still gives 0.679 < 0.815 chance. AUC-PR baselined against the 0.814 prevalence gives
 0.908 (block 23) vs. 0.809 (block 9), consistent with the AUC-ROC result.

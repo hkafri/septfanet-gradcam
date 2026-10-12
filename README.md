@@ -8,11 +8,13 @@ speaker-separation/VAD network — adapted from image-based Grad-CAM and validat
 
 ## What Grad-CAM successfully explains
 
-**VAD timing, at the ranking level (validated).** At the late TCN layer `TCN.TCN.23.conv1d`, the continuous VAD-logit
-CAM carries real discriminative signal about voice-activity timing: AUC-ROC = **0.723 ± 0.149** (p ≈ 3×10⁻¹¹, n=70,
-rank-biserial r = +0.914). The ranking signal is real — but it does **not** beat a majority-class-matched threshold
-decision, because ~82% of frames are genuinely speech-active (re-calibrated F1 = 0.679 vs. a chance baseline of
-0.815).
+**VAD timing, at the ranking level (validated).** At the late TCN layer `TCN.TCN.23.conv1d`, the block-23 VAD-logit
+map ranks speech-active frames above inactive ones (continuous-CAM AUC-ROC = **0.723 ± 0.149**, p ≈ 3×10⁻¹¹, n=70,
+rank-biserial r = +0.914). An exploratory check (AUC against the *union* of both speakers' activity ≥ AUC against the
+target speaker's own activity) indicates this **tracks overall speech activity in the mixture and is not shown to be
+specific to the target speaker**. The ranking signal is real — but it does **not** beat a majority-class-matched
+threshold decision, because ~82% of frames are genuinely speech-active (re-calibrated F1 = 0.679 vs. a chance
+baseline of 0.815).
 
 
 - **Speaker discriminability (MAE, pre-registered null controls)**: the speaker-vs-speaker MAE is *not*
@@ -24,8 +26,8 @@ decision, because ~82% of frames are genuinely speech-active (re-calibrated F1 =
   findings above and placed here as a null result. (Pre-registered script: `scripts/evaluate_mae_null_controls.py`.)
 - **Speaker-specificity (exclusive-activity AUC, pre-registered)**: at `TCN.TCN.23.conv1d`, restricting to frames
   where exactly one speaker is active, the CAM does not rank "speaker s active, other not" frames above "other
-  active, speaker s not" frames above chance (exclusive-activity AUC = 0.519 vs. 0.5, p=0.630, n=50 eligible).
-  The CAMs are not speaker-specific in the intended sense.
+  active, speaker s not" frames above chance (exclusive-activity AUC = 0.519 vs. 0.5, p=0.630, n=50 eligible —
+  **underpowered**, see below). Speaker specificity could not be shown.
 - **VAD timing at block 9** (the layer selected for the discriminability result): no positive signal (AUC = 0.417,
   significantly *below* 0.5, p=0.002).
 - **VAD timing via thresholded F1**: below the chance baseline at every layer tested (best 0.706 vs. 0.815) — the
@@ -73,6 +75,7 @@ python scripts/evaluate_fullscale_gradcam.py --device cpu --target-pairs 100
 
 # MAE null-control and speaker-specificity diagnostics
 python scripts/evaluate_mae_null_controls.py
+python scripts/evaluate_union_auc_check.py   # exploratory: mixture-activity vs target-speaker check
 
 # VAD-alignment and separation-alignment diagnostics
 python scripts/evaluate_vad_alignment.py --target-layer TCN.TCN.23.conv1d --output-suffix _block23
@@ -93,6 +96,11 @@ python scripts/make_vad_auc_figure.py
 The original finding (real MAE 0.233 vs. uniform-noise 0.416, p=9e-17) is reproduced below, followed by the
 pre-registered null controls that preserve the maps' value distributions and temporal smoothness.
 
+*Note on the two real-MAE values:* **0.233 ± 0.091** is the authoritative full-scale statistic (exact saved utterances,
+verified from the stored CSV). The pre-registered null run reports **0.243 ± 0.100** because it resolved each speaker
+to the alphabetically-first utterance rather than the exact saved one (84/100 pairs identical) — the same 200 speakers,
+a slightly different utterance set. The conclusion (MAE ≈ uniform-noise null; MAE ≈ value-preserving nulls) is unchanged.
+
 | Comparison | Real MAE | Null MAE | Wilcoxon p | Rank-biserial r |
 |---|---|---|---|---|
 | Real vs. uniform-noise control (original, insufficient) | 0.233 ± 0.091 | 0.416 ± 0.051 | 9.0e-17 | −0.917 |
@@ -106,14 +114,19 @@ is an artifact of the maps' sparsity (value distribution), not speaker-dependent
 
 ### Speaker-specificity (exclusive-activity AUC, pre-registered, block 23)
 
-Restricting to frames where exactly one speaker is active (n=50 eligible instances):
+Restricting to frames where exactly one speaker is active. With ~80%-active references, exclusive frames are scarce:
+median |E_s| = |E_o| = 12 across all instances (23 among eligible); mean frame agreement between the two reference
+VADs = 0.782. **n = 50 eligible instances** (40 on exact pairs).
 
 | Test | AUC | Null | Wilcoxon p | Rank-biserial r |
 |---|---|---|---|---|
 | Exclusive-activity AUC vs. 0.5 (PRIMARY) | 0.519 ± 0.310 | 0.5 | 0.630 | +0.086 |
-| Own-vs-other ΔAUC (secondary) | +0.024 | 0 | 0.089 | +0.136 |
+| Own-vs-other ΔAUC block 23 (secondary) | +0.024 | 0 | 0.089 | +0.136 |
+| Own-vs-other ΔAUC block 9 (secondary) | +0.004 | 0 | 0.903 | +0.009 |
 
-No evidence that the CAM is speaker-specific in the intended sense.
+**Power**: with n=50 eligible instances the test had 80% power only for an exclusive-AUC shift ≥ ~0.124 (AUC ≳ 0.62).
+The observed 0.519 is far below that, so 2B is **underpowered** — it supports "speaker specificity **not shown**",
+**not** "not speaker-specific".
 
 ### VAD-timing ranking signal (continuous-CAM AUC-ROC, n=70)
 
