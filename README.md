@@ -164,32 +164,43 @@ block 23: p=7.4e-11, r=+0.929 across pairs; block 9 stays below 0.5).
 
 Pre-registered (`scripts/evaluate_robustness_auc.py`). Pair-level AUC-ROC of the block-23 VAD-logit CAM against the
 speaker's own clean-source reference VAD, under simulated reverberation (independent RIR per speaker) and babble
-noise (LibriSpeech leftovers, speakers not in the mixture). Primary tests Holm-corrected across the 7 degraded
-conditions at α=0.05. "Persists" = condition AUC > 0.5 (Holm-adj). "Robust" = lower bound of the 95% pair-bootstrap CI
-of (AUC_condition − AUC_clean) above the −0.06 non-inferiority margin. Borderline flags: a CI bound within 0.01 of the
-margin.
+noise (LibriSpeech leftovers, speakers not in the mixture). "Persists" = condition AUC > 0.5 (Holm-adj across the 7
+degraded conditions). Non-inferiority uses a three-way classification against the pre-registered margin (−0.06) on the
+95% pair-bootstrap CI of (AUC_condition − AUC_clean): **robust** (lower bound > −0.06), **inferior** (upper bound
+< −0.06), **inconclusive** (otherwise; *borderline* when a bound is within 0.01 of the margin). The Bonferroni column
+is a **sensitivity analysis** (coverage 1 − 0.05/7 ≈ 99.3%) — the primary verdicts use the unadjusted 95% CIs.
 
-| Condition | CAM AUC [95% CI] | Persists? | Δ vs clean [95% CI] | Robust? | Network-VAD AUC [95% CI] |
-|---|---|---|---|---|---|
-| clean (reference) | 0.681 [0.649, 0.713] | — | — | — | 0.827 [0.779, 0.872] |
-| reverb T60=0.2 s | 0.687 [0.652, 0.720] | yes (p=9e-10) | +0.006 [−0.026, +0.037] | **yes** | 0.845 [0.799, 0.888] |
-| reverb T60=0.4 s | 0.665 [0.630, 0.699] | yes (p=1e-09) | −0.016 [−0.049, +0.017] | **yes** | 0.830 [0.782, 0.874] |
-| reverb T60=0.6 s | 0.651 [0.623, 0.679] | yes (p=3e-10) | −0.030 [−0.064, +0.003] | borderline* | 0.843 [0.797, 0.885] |
-| noise SNR=10 dB | 0.644 [0.620, 0.667] | yes (p=3e-10) | −0.037 [−0.069, −0.004] | borderline* | 0.855 [0.821, 0.889] |
-| noise SNR=5 dB | 0.614 [0.591, 0.635] | yes (p=1e-09) | −0.067 [−0.103, −0.031] | no | 0.844 [0.814, 0.874] |
-| noise SNR=0 dB | 0.577 [0.552, 0.604] | yes (p=1e-06) | −0.103 [−0.139, −0.067] | no | 0.815 [0.786, 0.843] |
-| combo T60=0.4 + SNR=5 | 0.625 [0.601, 0.649] | yes (p=7e-10) | −0.056 [−0.090, −0.021] | no | 0.836 [0.805, 0.867] |
+| Condition | CAM AUC [95% CI] | Persists? | Δ vs clean [95% CI] | Verdict (95%) | Bonferroni Δ lower | Network-VAD AUC |
+|---|---|---|---|---|---|---|
+| clean (reference) | 0.681 [0.649, 0.713] | — | — | — | — | 0.827 |
+| reverb T60=0.2 s | 0.687 [0.652, 0.720] | yes (p=9e-10) | +0.006 [−0.026, +0.037] | **robust** | −0.038 (robust) | 0.845 |
+| reverb T60=0.4 s | 0.665 [0.630, 0.699] | yes (p=1e-09) | −0.016 [−0.049, +0.017] | **robust** | −0.062 (inconclusive) † | 0.830 |
+| reverb T60=0.6 s | 0.651 [0.623, 0.679] | yes (p=3e-10) | −0.030 [−0.064, +0.003] | inconclusive (borderline) | −0.077 | 0.843 |
+| noise SNR=10 dB | 0.644 [0.620, 0.667] | yes (p=3e-10) | −0.037 [−0.069, −0.004] | inconclusive (borderline) | −0.080 | 0.855 |
+| noise SNR=5 dB | 0.614 [0.591, 0.635] | yes (p=1e-09) | −0.067 [−0.103, −0.031] | inconclusive | −0.114 | 0.844 |
+| noise SNR=0 dB | 0.577 [0.552, 0.604] | yes (p=1e-06) | −0.103 [−0.139, −0.067] | **inferior** (borderline) | −0.152 (inconclusive) † | 0.815 |
+| combo T60=0.4 + SNR=5 | 0.625 [0.601, 0.649] | yes (p=7e-10) | −0.056 [−0.090, −0.021] | inconclusive | −0.102 | 0.836 |
 
-\* *Borderline: the lower CI bound of the degradation is within 0.01 of the −0.06 margin (T60=0.6: −0.064; SNR=10:
-−0.069). Per the pre-registration these are reported as borderline, not called robust.*
+† *Sensitivity: the verdict changes under Bonferroni-adjusted coverage (99.3%). T60=0.4 s moves robust → inconclusive
+(adjusted lower bound −0.062 crosses the margin); SNR=0 moves inferior → inconclusive (adjusted upper bound −0.053
+crosses back inside the margin). T60=0.2 s stays robust at both coverages.*
 
-**What can be claimed (held-out, block 23):** the VAD-timing ranking signal **persists** (stays above chance, Holm-adj
-significant) in **every** tested condition, including 0 dB babble. It is **robust within the −0.06 margin** only under
-mild-to-moderate reverberation (T60 = 0.2, 0.4 s); it is borderline at strong reverberation (T60 = 0.6) and mild noise
-(SNR = 10 dB), and it degrades beyond the margin at stronger noise (SNR ≤ 5 dB) and in the combined condition. The
-network's own VAD output stays high in all conditions (0.81–0.86), so the CAM-AUC drop under strong noise is not simply
-the network failing — the explanation degrades faster than the network's VAD. Reference VAD is Silero on the clean dry
-sources; in reverberation the dry reference under-marks reverberant-tail frames, so the reverb numbers are conservative.
+**What can be claimed (held-out, block 23), condition by condition:**
+
+- **Persists** (CI above 0.5) in **every** condition, including 0 dB babble.
+- **Robust within the margin** at T60 = 0.2 s (stable under the multiplicity sensitivity check), and at T60 = 0.4 s
+  **with the multiplicity caveat** (robust on the primary 95% CI; inconclusive under Bonferroni).
+- **Inconclusive** at T60 = 0.6 s, SNR = 10 dB, SNR = 5 dB, and the combined condition — for SNR = 5 dB and the
+  combined condition the degradation is significant (CI excludes 0) but degradation *beyond the margin* is not
+  established; robustness is not demonstrated there.
+- **Inferior (beyond the margin)** at SNR = 0 dB on the primary CI (upper bound −0.067 < −0.06); note this verdict is
+  itself borderline and flips to inconclusive under the Bonferroni sensitivity check.
+
+Reverberation numbers use dry-source references, which under-mark reverberant tails, so they are **conservative**. The
+network's own VAD output stays high in all conditions (0.81–0.86), so the CAM-AUC drop under strong noise is not
+simply the network failing — the explanation degrades faster than the network's VAD. **Development set (35 pairs,
+secondary)** shows the same direction: robust at all three T60 values and SNR=10 dB, inconclusive at SNR=5 dB and the
+combined condition, inferior at SNR=0 dB — consistent with the held-out set.
 
 *(Superseded: an earlier MAE-vs-uniform-noise robustness table is no longer used — that metric was later shown to be
 uninformative, because sparse maps beat uniform noise trivially. See the investigation log.)*

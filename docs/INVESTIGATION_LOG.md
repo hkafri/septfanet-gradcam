@@ -271,12 +271,44 @@ Two results are **borderline** per the pre-registered rule (CI lower bound withi
 reverb T60=0.6 (−0.064) and noise SNR=10 (−0.069). Per the discipline, these are reported as borderline, not called
 robust.
 
-**Net (held-out, block 23):** the VAD-timing ranking signal **persists** (above chance, Holm-significant) in every
-tested condition including 0 dB babble, and is **robust within the margin** under mild-to-moderate reverberation
-(T60 0.2–0.4 s). It degrades beyond the margin under stronger noise (SNR ≤ 5 dB) and in the combined condition. The
-network's own VAD stays high everywhere (0.81–0.86), so the CAM-AUC drop under strong noise reflects the *explanation*
-degrading faster than the network, not the network failing. Development-set (35 pairs, secondary) results are
-consistent (reverb robust at all T60; noise degrades at SNR ≤ 5; same direction).
+### Three-way classification and multiplicity sensitivity (2026-10-13)
+
+Script: `scripts/evaluate_robustness_sensitivity.py` (no new simulations; recomputes per-pair AUCs with the same
+seeded pipeline, cached in `results/robustness_auc/per_pair_auc_*.json`). Artifacts:
+`results/robustness_auc/robustness_sensitivity_{heldout,dev}.{csv,json}`.
+
+**Three-way non-inferiority classification** (margin −0.06, 95% pair-bootstrap CI of AUC_condition − AUC_clean):
+robust (lower > −0.06), inferior (upper < −0.06), inconclusive (otherwise).
+
+| Condition | Δ [95% CI] | Verdict (95%) | Bonferroni Δ lower/upper (99.3%) | Verdict (Bonf) | Changed? |
+|---|---|---|---|---|---|
+| reverb T60=0.2 | +0.006 [−0.026, +0.037] | robust | [−0.038, +0.049] | robust | no |
+| reverb T60=0.4 | −0.016 [−0.049, +0.017] | robust | [−0.062, +0.029] | inconclusive | **yes** |
+| reverb T60=0.6 | −0.030 [−0.064, +0.003] | inconclusive | [−0.077, +0.015] | inconclusive | no |
+| noise SNR=10 | −0.037 [−0.069, −0.004] | inconclusive | [−0.080, +0.007] | inconclusive | no |
+| noise SNR=5 | −0.067 [−0.103, −0.031] | inconclusive | [−0.114, −0.016] | inconclusive | no |
+| noise SNR=0 | −0.103 [−0.139, −0.067] | **inferior** | [−0.152, −0.053] | inconclusive | **yes** |
+| combo | −0.056 [−0.090, −0.021] | inconclusive | [−0.102, −0.008] | inconclusive | no |
+
+**Correction to earlier wording**: the prior log/README said the signal "degrades beyond the margin at SNR ≤ 5 dB and
+the combined condition". From the saved CIs, only **SNR = 0 dB** is entirely beyond the margin (upper bound −0.067 <
+−0.06). SNR = 5 dB (upper −0.031) and the combined condition (upper −0.021) have upper bounds *inside* the margin — so
+the correct statement is: *degradation is significant (CI excludes 0) at SNR ≤ 5 dB and the combined condition, but
+degradation beyond the margin is established only at 0 dB; robustness is not demonstrated at 5 dB or in the combined
+condition.*
+
+**Multiplicity sensitivity (Bonferroni 99.3% CIs; primary verdicts unchanged)**: two verdicts are sensitive.
+T60=0.4 s moves robust → inconclusive (adjusted lower bound −0.062 crosses the margin), and SNR=0 moves inferior →
+inconclusive (adjusted upper bound −0.053 crosses back inside). T60=0.2 s stays robust at both coverages. The
+pre-registered primary verdicts are the 95% ones; the Bonferroni column is a sensitivity check only.
+
+**Net (held-out, block 23), condition by condition:** the signal **persists** (above chance, Holm-significant) in
+every condition; **robust within the margin** at T60=0.2 s (stable) and T60=0.4 s (with the multiplicity caveat);
+**inconclusive** at T60=0.6, SNR=10, SNR=5, and the combined condition; **inferior** at SNR=0 (borderline; flips to
+inconclusive under Bonferroni). The network's own VAD stays high everywhere (0.81–0.86), so the CAM-AUC drop under
+strong noise reflects the *explanation* degrading faster than the network. Development set (35 pairs, secondary):
+same direction (robust at all T60 and SNR=10; inconclusive at SNR=5 and combo; inferior at SNR=0), consistent with
+held-out. Reverberation references are dry-source (under-mark reverb tails), so reverb numbers are conservative.
 
 
 
