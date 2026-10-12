@@ -1,0 +1,63 @@
+{
+  "pre_registration": {
+    "primary": "block 23, 65 NEW pairs (130 instances), per-instance AUC(CAM_s, v_s) vs own reference VAD, one-sample Wilcoxon vs 0.5, alpha=0.05, 95% bootstrap CI (10000)",
+    "secondary": "block 9 same instances; block 23 on original 35 pairs (development set)",
+    "declared": "2026-10-12, before computation"
+  },
+  "step3_bootstrap_2b": {
+    "n_eligible": 40,
+    "mean": 0.48225493946492737,
+    "std": 0.30120244083910663,
+    "ci95": [
+      0.3886988738089527,
+      0.5757437276218386
+    ]
+  },
+  "replication": {
+    "block23_new65_PRIMARY": {
+      "n": 130,
+      "mean": 0.6806663529620413,
+      "std": 0.1916185045190301,
+      "ci95": [
+        0.6472702191556191,
+        0.7121159429113408
+      ],
+      "wilcoxon_vs_0.5": {
+        "w": 889.0,
+        "p": 8.139154801151238e-15,
+        "rank_biserial_r": 0.7862344373972281,
+        "n": 130
+      }
+    },
+    "block9_new65_secondary": {
+      "n": 130,
+      "mean": 0.44307715407662007,
+      "std": 0.17385672978947167,
+      "ci95": [
+        0.41246981560987434,
+        0.473060366471741
+      ],
+      "wilcoxon_vs_0.5": {
+        "w": 2866.0,
+        "p": 0.0012231988408178184,
+        "rank_biserial_r": -0.3268349970640047,
+        "n": 130
+      }
+    },
+    "block23_dev35_secondary": {
+      "n": 70,
+      "mean": 0.722827842300648,
+      "std": 0.14927284612440586,
+      "ci95": [
+        0.6870636486845692,
+        0.7570250411560205
+      ],
+      "wilcoxon_vs_0.5": {
+        "w": 107.0,
+        "p": 3.029015078896572e-11,
+        "rank_biserial_r": 0.9138832997987928,
+        "n": 70
+      }
+    }
+  }
+}

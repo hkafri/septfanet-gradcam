@@ -8,13 +8,14 @@ speaker-separation/VAD network — adapted from image-based Grad-CAM and validat
 
 ## What Grad-CAM successfully explains
 
-**VAD timing, at the ranking level (validated).** At the late TCN layer `TCN.TCN.23.conv1d`, the block-23 VAD-logit
-map ranks speech-active frames above inactive ones (continuous-CAM AUC-ROC = **0.723 ± 0.149**, p ≈ 3×10⁻¹¹, n=70,
-rank-biserial r = +0.914). An exploratory check (AUC against the *union* of both speakers' activity ≥ AUC against the
-target speaker's own activity) indicates this **tracks overall speech activity in the mixture and is not shown to be
-specific to the target speaker**. The ranking signal is real — but it does **not** beat a majority-class-matched
-threshold decision, because ~82% of frames are genuinely speech-active (re-calibrated F1 = 0.679 vs. a chance
-baseline of 0.815).
+**VAD timing, at the ranking level (validated, and replicated on held-out pairs).** At the late TCN layer
+`TCN.TCN.23.conv1d`, the block-23 VAD-logit map ranks speech-active frames above inactive ones (continuous-CAM
+AUC-ROC = **0.723 ± 0.149**, p ≈ 3×10⁻¹¹, n=70, rank-biserial r = +0.914). This **replicated on 65 held-out pairs
+never used in layer selection**: AUC = 0.681 ± 0.192, 95% CI [0.647, 0.712] (excludes 0.5), p ≈ 8×10⁻¹⁵, n=130.
+An exploratory check found own-speaker and union references give **statistically indistinguishable** AUCs (0.695 vs.
+0.709, p = 0.124), so the ranking signal is **not shown to be specific to the target speaker**; it is consistent with
+tracking overall speech activity. The signal does **not** beat a majority-class-matched threshold decision, because
+~82% of frames are genuinely speech-active (re-calibrated F1 = 0.679 vs. a chance baseline of 0.815).
 
 
 - **Speaker discriminability (MAE, pre-registered null controls)**: the speaker-vs-speaker MAE is *not*
@@ -26,8 +27,9 @@ baseline of 0.815).
   findings above and placed here as a null result. (Pre-registered script: `scripts/evaluate_mae_null_controls.py`.)
 - **Speaker-specificity (exclusive-activity AUC, pre-registered)**: at `TCN.TCN.23.conv1d`, restricting to frames
   where exactly one speaker is active, the CAM does not rank "speaker s active, other not" frames above "other
-  active, speaker s not" frames above chance (exclusive-activity AUC = 0.519 vs. 0.5, p=0.630, n=50 eligible —
-  **underpowered**, see below). Speaker specificity could not be shown.
+  active, speaker s not" frames above chance (exclusive-activity AUC = 0.482 vs. 0.5, 95% CI [0.389, 0.576],
+  p=0.856, n=40 eligible — **underpowered**, see below). Speaker specificity **not shown**; small effects cannot be
+  excluded.
 - **VAD timing at block 9** (the layer selected for the discriminability result): no positive signal (AUC = 0.417,
   significantly *below* 0.5, p=0.002).
 - **VAD timing via thresholded F1**: below the chance baseline at every layer tested (best 0.706 vs. 0.815) — the
@@ -94,46 +96,51 @@ python scripts/make_vad_auc_figure.py
 ### MAE discriminability vs. null controls (pre-registered, N=100 pairs, block 9)
 
 The original finding (real MAE 0.233 vs. uniform-noise 0.416, p=9e-17) is reproduced below, followed by the
-pre-registered null controls that preserve the maps' value distributions and temporal smoothness.
-
-*Note on the two real-MAE values:* **0.233 ± 0.091** is the authoritative full-scale statistic (exact saved utterances,
-verified from the stored CSV). The pre-registered null run reports **0.243 ± 0.100** because it resolved each speaker
-to the alphabetically-first utterance rather than the exact saved one (84/100 pairs identical) — the same 200 speakers,
-a slightly different utterance set. The conclusion (MAE ≈ uniform-noise null; MAE ≈ value-preserving nulls) is unchanged.
+pre-registered null controls that preserve the maps' value distributions and temporal smoothness. All numbers are
+computed on the **exact saved utterances** (real MAE reproduces at 0.2333); an earlier version of the null script that
+resolved speakers to the alphabetically-first utterance gave 0.243 — the same 200 speakers, a slightly different
+utterance set — with identical conclusions.
 
 | Comparison | Real MAE | Null MAE | Wilcoxon p | Rank-biserial r |
 |---|---|---|---|---|
-| Real vs. uniform-noise control (original, insufficient) | 0.233 ± 0.091 | 0.416 ± 0.051 | 9.0e-17 | −0.917 |
-| Real vs. **N1 circular-shift null** (PRIMARY) | 0.243 ± 0.100 | 0.253 ± 0.087 | 0.487 | −0.080 |
-| Real vs. **N2 full-permutation null** (secondary) | 0.243 ± 0.100 | 0.252 ± 0.087 | 0.462 | −0.085 |
-| Real vs. **N3 constant-map baseline** (secondary) | 0.243 ± 0.100 | 0.208 ± 0.108 | 5.5e-09 | +0.672 |
+| Real vs. uniform-noise control (original, insufficient) | 0.233 ± 0.091 | 0.416 ± 0.051 | 9.0e-17 | −0.953 |
+| Real vs. **N1 circular-shift null** (PRIMARY) | 0.233 ± 0.091 | 0.246 ± 0.081 | 0.202 | −0.147 |
+| Real vs. **N2 full-permutation null** (secondary) | 0.233 ± 0.091 | 0.246 ± 0.080 | 0.207 | −0.145 |
+| Real vs. **N3 constant-map baseline** (secondary) | 0.233 ± 0.091 | 0.201 ± 0.101 | 7.7e-08 | +0.619 |
 
 The MAE is *not* significantly below the value-distribution-preserving nulls (N1, N2). The apparent discriminability
 is an artifact of the maps' sparsity (value distribution), not speaker-dependent temporal alignment. The N3 result
-(real > constant) is a secondary check that the maps are not simply degenerate.
+(real > constant) is a secondary check that the maps are not simply degenerate. (Block 23, secondary: N1 p=0.103,
+N2 p=0.136, N3 p=1.5e-06.)
 
 ### Speaker-specificity (exclusive-activity AUC, pre-registered, block 23)
 
 Restricting to frames where exactly one speaker is active. With ~80%-active references, exclusive frames are scarce:
 median |E_s| = |E_o| = 12 across all instances (23 among eligible); mean frame agreement between the two reference
-VADs = 0.782. **n = 50 eligible instances** (40 on exact pairs).
+VADs = 0.782. **n = 40 eligible instances** (exact saved utterances).
 
-| Test | AUC | Null | Wilcoxon p | Rank-biserial r |
+| Test | AUC | 95% CI (bootstrap) | Null | Wilcoxon p | Rank-biserial r |
+|---|---|---|---|---|---|
+| Exclusive-activity AUC vs. 0.5 (PRIMARY) | 0.482 ± 0.301 | [0.389, 0.576] | 0.5 | 0.856 | −0.026 |
+| Own-vs-other ΔAUC block 23 (secondary) | +0.015 | — | 0 | 0.295 | — |
+| Own-vs-other ΔAUC block 9 (secondary) | −0.003 | — | 0 | 0.642 | — |
+
+**Power**: with n=40 eligible instances the test had 80% power only for an exclusive-AUC shift ≥ ~0.14 (AUC ≳ 0.64).
+The 95% CI [0.389, 0.576] **excludes a speaker-specific effect as large as the overall ranking effect** (an AUC shift
+of ~0.2), so **large speaker-specific effects are excluded; small effects cannot be excluded** — the test is
+**underpowered** and the correct reading is "speaker specificity **not shown**", **not** "not speaker-specific".
+
+### VAD-timing ranking signal (continuous-CAM AUC-ROC)
+
+| Set | Layer | AUC-ROC | 95% CI | Wilcoxon vs. 0.5 |
 |---|---|---|---|---|
-| Exclusive-activity AUC vs. 0.5 (PRIMARY) | 0.519 ± 0.310 | 0.5 | 0.630 | +0.086 |
-| Own-vs-other ΔAUC block 23 (secondary) | +0.024 | 0 | 0.089 | +0.136 |
-| Own-vs-other ΔAUC block 9 (secondary) | +0.004 | 0 | 0.903 | +0.009 |
+| Development (35 pairs, n=70) | Block 9 | 0.417 ± 0.192 | — | p=0.0023, r=−0.420 (below 0.5) |
+| Development (35 pairs, n=70) | **Block 23** | **0.723 ± 0.149** | [0.687, 0.757] | **p=3.03e-11, r=+0.914 (above 0.5)** |
+| **Held-out replication (65 pairs, n=130)** | **Block 23** | **0.681 ± 0.192** | **[0.647, 0.712]** | **p=8.1e-15, r=+0.786 (above 0.5)** |
+| Held-out replication (65 pairs, n=130) | Block 9 | 0.443 ± 0.174 | [0.412, 0.473] | p=1.2e-03, r=−0.327 (below 0.5) |
 
-**Power**: with n=50 eligible instances the test had 80% power only for an exclusive-AUC shift ≥ ~0.124 (AUC ≳ 0.62).
-The observed 0.519 is far below that, so 2B is **underpowered** — it supports "speaker specificity **not shown**",
-**not** "not speaker-specific".
-
-### VAD-timing ranking signal (continuous-CAM AUC-ROC, n=70)
-
-| Layer | AUC-ROC | AUC-PR (baseline = prevalence 0.814) | Wilcoxon vs. 0.5 |
-|---|---|---|---|
-| Block 9 | 0.417 ± 0.192 | 0.809 | p=0.0023, r=−0.420 (below 0.5) |
-| **Block 23** | **0.723 ± 0.149** | **0.908** | **p=3.03e-11, r=+0.914 (above 0.5)** |
+The block-23 VAD-timing ranking signal **replicates on 65 pairs never used in layer or method selection** — AUC
+clearly above 0.5 with a CI that excludes 0.5.
 
 ### Separation (IBM) alignment (orientation-invariant AUC-ROC, n=70)
 

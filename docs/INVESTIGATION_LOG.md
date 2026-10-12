@@ -147,15 +147,64 @@ Does the validated block-23 ranking signal track the target speaker or the overa
 - `AUC_own = 0.695 ± 0.179` (prevalence 0.792); `AUC_union = 0.709 ± 0.174` (prevalence 0.897).
 - Δ(union−own) = +0.013; frac(union ≥ own) = 0.680; paired Wilcoxon p = 0.124 (r=+0.087, n=200).
 
-AUC_union ≥ AUC_own holds (68% of instances, paired difference n.s.). **Consistent with the map tracking overall
-speech activity in the mixture rather than the target speaker specifically.** The remaining positive VAD claim is
-reworded accordingly.
+Own-speaker and union references give **statistically indistinguishable** AUCs (0.695 vs. 0.709, p = 0.124), so the
+ranking signal is **not shown to be specific to the target speaker**; it is *consistent with* tracking overall speech
+activity. (Corrected wording — the earlier draft stated mixture-tracking as fact, which the n.s. result does not support.)
 
 ### 5.4 Power of 2B (Step 4)
 
 n_eligible = 40–50 (vs. 70 for the validated VAD result). 80%-power detectable standardized effect dz ≈ 0.40–0.44 ⇒
 detectable exclusive-AUC shift ≈ **0.124–0.137** (AUC ≳ 0.62–0.64). The observed 0.519 is far below that, so 2B is
 **underpowered**. It supports "speaker specificity **not shown**", **not** "not speaker-specific". README updated.
+
+---
+
+## Phase 6 — Exact-utterance re-run, bootstrap CI, and held-out replication (2026-10-12)
+
+Scripts: `scripts/evaluate_mae_null_controls.py` (fixed to exact saved utterances) and
+`scripts/evaluate_vad_replication.py` (pre-registered before execution, commit `09ac91a`).
+Artifacts: `results/mae_null_controls/`, `results/replication/replication_summary.json`.
+
+### 6.1 Utterance-resolution audit (Step 2)
+
+Only `evaluate_mae_null_controls.py` used alphabetical resolution. All headline scripts
+(`evaluate_vad_alignment`, `evaluate_auc_check`, `validate_vad_auc_f1`, `evaluate_separation_alignment`) use a
+**seeded random** `SpeakerSampler` (seed=123, reproducible); `validate_vad_auc` reads existing CSVs (no audio loading).
+So only the null-control script was affected, by ~0.01 in the real-MAE mean.
+
+### 6.2 2A on exact saved utterances (Step 2)
+
+Real MAE now reproduces at **0.2333** (the authoritative value). Corrected block-9 numbers:
+
+| Null | Null MAE | p | r |
+|---|---|---|---|
+| N1 circular-shift (PRIMARY) | 0.246 ± 0.081 | 0.202 | −0.147 |
+| N2 full permutation (secondary) | 0.246 ± 0.080 | 0.207 | −0.145 |
+| N3 constant-map (secondary) | 0.201 ± 0.101 | 7.7e-08 | +0.619 |
+
+Block 23 (secondary): N1 p=0.103, N2 p=0.136, N3 p=1.5e-06. Conclusions unchanged: not below value-preserving nulls.
+
+### 6.3 Bootstrap CI for 2B (Step 3)
+
+Exclusive-activity AUC (block 23, exact pairs, n=40 eligible): mean **0.482**, 95% bootstrap CI **[0.389, 0.576]**
+(10,000 resamples). The CI **excludes a speaker-specific effect as large as the overall ranking effect** (~0.2 AUC
+shift ⇒ ~0.7). Wording: **large speaker-specific effects excluded; small effects cannot be excluded.**
+
+### 6.4 Held-out replication of the block-23 VAD result (Step 4)
+
+The layer choice and VAD-AUC hypothesis were developed on the original 35 pairs; the N=100 pool contains 65 pairs
+never used in any layer/method investigation. Pre-registered primary: block 23, 65 new pairs (130 instances),
+per-instance AUC(CAM_s, v_s) vs. own reference VAD, one-sample Wilcoxon vs. 0.5.
+
+| Set | AUC | 95% CI | Wilcoxon p | r |
+|---|---|---|---|---|
+| Development (35 pairs, n=70) | 0.723 ± 0.149 | [0.687, 0.757] | 3.0e-11 | +0.914 |
+| **Held-out (65 pairs, n=130)** | **0.681 ± 0.192** | **[0.647, 0.712]** | **8.1e-15** | **+0.786** |
+
+**The effect replicates**: AUC clearly above 0.5, CI excludes 0.5, p ≈ 8e-15. Block 9 on the same held-out pairs is
+below 0.5 (0.443 ± 0.174, CI [0.412, 0.473], p=1.2e-03) — consistent with the development set. This is now the
+strongest positive claim in the repo: replicated on data never touched during method development.
+
 
 
 F1-vs-chance is a hard-threshold decision against a strong majority-class baseline. Re-calibrating F1 at the
