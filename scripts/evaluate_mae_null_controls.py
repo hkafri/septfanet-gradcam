@@ -52,6 +52,8 @@ FULLSCALE_CSV = gradcam_root / "results" / "fullscale" / "fullscale_results.csv"
 SAMPLES_DIR = gradcam_root / "data" / "librispeech_samples"
 HOLDOUT_DIR = gradcam_root / "data" / "librispeech_holdout"
 FULLSCALE_DIR = gradcam_root / "data" / "librispeech_fullscale"
+SELECTION_CSV = gradcam_root / "results" / "librispeech_gradcam" / "multi_pair_results.csv"
+HOLDOUT_CSV = gradcam_root / "results" / "librispeech_gradcam" / "holdout_results.csv"
 
 BLOCK_9 = "TCN.TCN.9.conv1d"
 BLOCK_23 = "TCN.TCN.23.conv1d"
@@ -132,37 +134,32 @@ def wilcoxon_one_sample(values, null=0.5):
 
 
 def load_fullscale_pairs():
-    """Reconstruct the exact 100 full-scale pairs from the saved results CSV.
+    """Reconstruct the exact 100 full-scale pairs using the SAME utterances as the
+    original full-scale run (evaluate_fullscale_gradcam.py).
 
-    The CSV stores origin (existing/new) and speaker IDs. Existing pairs' audio
-    lives in data/librispeech_samples (selection) or data/librispeech_holdout
-    (held-out); new pairs come from data/librispeech_fullscale. Since the CSV
-    does not store exact utterance filenames, we resolve each speaker's first
-    matching .flac by speaker-ID prefix in the appropriate directory.
+    Existing pairs: read the exact utt_0/utt_1 filenames from the selection and
+    holdout CSVs. New pairs: replicate resolve_new_pairs() exactly — sort speakers,
+    pair consecutive ones, take each speaker's alphabetically-first utterance
+    (that is what the original run used for the new pairs). This reproduces the
+    original sample (real MAE 0.2333), unlike an earlier version that resolved
+    existing pairs to the alphabetically-first utterance too.
     """
     pairs = []
-
-    def first_utt(spk, dirs):
-        for d in dirs:
-            fs = sorted(d.glob(f"{spk}-*.flac"))
-            if fs:
-                return fs[0]
-        return None
-
-    for row in csv.DictReader(open(FULLSCALE_CSV)):
-        origin = row["origin"]
-        if origin == "existing":
-            dirs = (SAMPLES_DIR, HOLDOUT_DIR)
-        else:
-            dirs = (FULLSCALE_DIR,)
-        p0 = first_utt(row["speaker_0"], dirs)
-        p1 = first_utt(row["speaker_1"], dirs)
-        if p0 is not None and p1 is not None:
-            pairs.append({"path_0": p0, "path_1": p1, "origin": origin})
-        else:
-            raise FileNotFoundError(
-                f"Could not resolve audio for pair {row.get('pair_index')}: "
-                f"speakers {row['speaker_0']}/{row['speaker_1']} in {[str(d) for d in dirs]}")
+    for csv_path, base in ((SELECTION_CSV, SAMPLES_DIR), (HOLDOUT_CSV, HOLDOUT_DIR)):
+        for row in csv.DictReader(open(csv_path)):
+            p0 = base / row["utt_0"]
+            p1 = base / row["utt_1"]
+            if not (p0.exists() and p1.exists()):
+                raise FileNotFoundError(f"Missing existing-pair audio: {p0} / {p1}")
+            pairs.append({"path_0": p0, "path_1": p1, "origin": "existing"})
+    num_new = 100 - len(pairs)
+    by_speaker = {}
+    for f in sorted(FULLSCALE_DIR.glob("*.flac")):
+        by_speaker.setdefault(f.name.split("-")[0], []).append(f)
+    sids = sorted(by_speaker)
+    for i in range(0, min(num_new * 2, len(sids) - 1), 2):
+        pairs.append({"path_0": by_speaker[sids[i]][0],
+                      "path_1": by_speaker[sids[i + 1]][0], "origin": "new"})
     return pairs
 
 
