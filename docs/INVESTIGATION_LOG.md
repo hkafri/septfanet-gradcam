@@ -205,6 +205,31 @@ per-instance AUC(CAM_s, v_s) vs. own reference VAD, one-sample Wilcoxon vs. 0.5.
 below 0.5 (0.443 ± 0.174, CI [0.412, 0.473], p=1.2e-03) — consistent with the development set. This is now the
 strongest positive claim in the repo: replicated on data never touched during method development.
 
+---
+
+## Phase 7 — Pair-level clustered re-analysis (2026-10-12)
+
+The per-instance tests treat the two speakers of a pair as independent, but they share a mixture and are correlated.
+This re-analysis clusters at the **pair** level: average the two per-instance AUCs within each pair, run the
+one-sample Wilcoxon vs. 0.5 across **pairs**, and compute the 95% CI with a bootstrap that resamples **pairs**, not
+instances. Script: `scripts/evaluate_pair_level.py`. Artifacts: `results/pair_level/pair_level_summary.json`.
+
+### Old (instance-level) vs. new (pair-level)
+
+| Metric | Instance-level | Pair-level |
+|---|---|---|
+| Block 23, dev 35 pairs | 0.723 ± 0.149 (n=70), p=3.0e-11, r=+0.914 | 0.723 ± 0.093 (n=35), CI [0.692, 0.753], p=5.8e-11, r=+1.000 |
+| Block 23, held-out 65 pairs | 0.681 ± 0.192 (n=130), p=8.1e-15, r=+0.786 | 0.681 ± 0.130 (n=65), CI [0.649, 0.713], p=7.4e-11, r=+0.929 |
+| Block 9, dev 35 pairs | 0.417 ± 0.192 (n=70), p=0.0023, r=−0.420 | 0.417 ± 0.105 (n=35), CI [0.384, 0.452], p=8.4e-05, r=−0.721 |
+| Block 9, held-out 65 pairs | 0.443 ± 0.174 (n=130), p=1.2e-03, r=−0.327 | 0.443 ± 0.129 (n=65), CI [0.412, 0.474], p=1.5e-03, r=−0.454 |
+| 2B exclusive-activity (block 23) | 0.482 ± 0.301 (n=40), p=0.856, r=−0.026 | 0.482 ± 0.169 (n=20 both-eligible pairs), CI [0.406, 0.554], p=0.748, r=−0.081 |
+
+**Conclusion unchanged under pair-level clustering.** The block-23 VAD-timing signal stays clearly above 0.5 (held-out
+p=7.4e-11 across pairs); block 9 stays below 0.5; the 2B exclusive-activity test stays non-significant and
+underpowered (pair-level CI [0.406, 0.554] still excludes a ~0.2 shift). Clustering inflates neither the point
+estimates nor the significance — the within-pair correlation is weak enough that instance-level and pair-level agree.
+
+
 
 
 F1-vs-chance is a hard-threshold decision against a strong majority-class baseline. Re-calibrating F1 at the

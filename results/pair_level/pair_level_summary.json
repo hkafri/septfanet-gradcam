@@ -1,0 +1,86 @@
+{
+  "note": "pair-level clustered analysis; pairs resampled, not instances",
+  "n_boot": 10000,
+  "results": {
+    "block23_dev35": {
+      "name": "block23 own-VAD AUC, dev 35 pairs",
+      "n_pairs": 35,
+      "pair_mean_of_mean_auc": 0.722827842300648,
+      "pair_std": 0.09261956146463206,
+      "ci95_pair_bootstrap": [
+        0.692100240776676,
+        0.7528570654925641
+      ],
+      "wilcoxon_vs_0.5_pairs": {
+        "w": 0.0,
+        "p": 5.820766091346741e-11,
+        "rank_biserial_r": 1.0,
+        "n": 35
+      }
+    },
+    "block23_hold65": {
+      "name": "block23 own-VAD AUC, held-out 65 pairs",
+      "n_pairs": 65,
+      "pair_mean_of_mean_auc": 0.6806663529620413,
+      "pair_std": 0.13000659429038672,
+      "ci95_pair_bootstrap": [
+        0.6487774808064354,
+        0.7127102520924427
+      ],
+      "wilcoxon_vs_0.5_pairs": {
+        "w": 76.0,
+        "p": 7.412534503871379e-11,
+        "rank_biserial_r": 0.9291375291375291,
+        "n": 65
+      }
+    },
+    "block23_excl_pair": {
+      "name": "block23 exclusive-activity AUC, pairs with BOTH speakers eligible",
+      "n_pairs": 20,
+      "pair_mean_of_mean_auc": 0.48225493946492737,
+      "pair_std": 0.16910885788153926,
+      "ci95_pair_bootstrap": [
+        0.4061402683495135,
+        0.5541641765524297
+      ],
+      "wilcoxon_vs_0.5_pairs": {
+        "w": 87.0,
+        "p": 0.7475000777680043,
+        "rank_biserial_r": -0.08133971291866028,
+        "n": 20
+      }
+    },
+    "block9_dev35": {
+      "name": "block9 own-VAD AUC, dev 35 pairs",
+      "n_pairs": 35,
+      "pair_mean_of_mean_auc": 0.41728724228781444,
+      "pair_std": 0.10490622204125712,
+      "ci95_pair_bootstrap": [
+        0.3839256319158038,
+        0.45243535434283927
+      ],
+      "wilcoxon_vs_0.5_pairs": {
+        "w": 88.0,
+        "p": 8.433760376647115e-05,
+        "rank_biserial_r": -0.7206349206349206,
+        "n": 35
+      }
+    },
+    "block9_hold65": {
+      "name": "block9 own-VAD AUC, held-out 65 pairs",
+      "n_pairs": 65,
+      "pair_mean_of_mean_auc": 0.44307715407662007,
+      "pair_std": 0.12846759868717117,
+      "ci95_pair_bootstrap": [
+        0.4121938770704923,
+        0.47380257650619473
+      ],
+      "wilcoxon_vs_0.5_pairs": {
+        "w": 586.0,
+        "p": 0.0014765857578925106,
+        "rank_biserial_r": -0.4536130536130536,
+        "n": 65
+      }
+    }
+  }
+}

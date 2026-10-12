@@ -78,6 +78,8 @@ python scripts/evaluate_fullscale_gradcam.py --device cpu --target-pairs 100
 # MAE null-control and speaker-specificity diagnostics
 python scripts/evaluate_mae_null_controls.py
 python scripts/evaluate_union_auc_check.py   # exploratory: mixture-activity vs target-speaker check
+python scripts/evaluate_pair_level.py        # pair-level clustered re-analysis (resamples pairs, not instances)
+python scripts/evaluate_vad_replication.py   # held-out replication of the block-23 VAD signal
 
 # VAD-alignment and separation-alignment diagnostics
 python scripts/evaluate_vad_alignment.py --target-layer TCN.TCN.23.conv1d --output-suffix _block23
@@ -121,26 +123,33 @@ VADs = 0.782. **n = 40 eligible instances** (exact saved utterances).
 
 | Test | AUC | 95% CI (bootstrap) | Null | Wilcoxon p | Rank-biserial r |
 |---|---|---|---|---|---|
-| Exclusive-activity AUC vs. 0.5 (PRIMARY) | 0.482 ± 0.301 | [0.389, 0.576] | 0.5 | 0.856 | −0.026 |
+| Exclusive-activity AUC vs. 0.5 (PRIMARY, instance-level, n=40) | 0.482 ± 0.301 | [0.389, 0.576] | 0.5 | 0.856 | −0.026 |
+| Exclusive-activity AUC vs. 0.5 (**pair-level**, both speakers eligible, n=20 pairs) | 0.482 ± 0.169 | [0.406, 0.554] | 0.5 | 0.748 | −0.081 |
 | Own-vs-other ΔAUC block 23 (secondary) | +0.015 | — | 0 | 0.295 | — |
 | Own-vs-other ΔAUC block 9 (secondary) | −0.003 | — | 0 | 0.642 | — |
 
-**Power**: with n=40 eligible instances the test had 80% power only for an exclusive-AUC shift ≥ ~0.14 (AUC ≳ 0.64).
-The 95% CI [0.389, 0.576] **excludes a speaker-specific effect as large as the overall ranking effect** (an AUC shift
-of ~0.2), so **large speaker-specific effects are excluded; small effects cannot be excluded** — the test is
-**underpowered** and the correct reading is "speaker specificity **not shown**", **not** "not speaker-specific".
+**Power**: with n=40 eligible instances (n=20 fully-eligible pairs) the test had 80% power only for an exclusive-AUC
+shift ≥ ~0.14 (AUC ≳ 0.64). The pair-level 95% CI [0.406, 0.554] **excludes a speaker-specific effect as large as the
+overall ranking effect** (an AUC shift of ~0.2), so **large speaker-specific effects are excluded; small effects
+cannot be excluded** — the test is **underpowered** and the correct reading is "speaker specificity **not shown**",
+**not** "not speaker-specific".
 
 ### VAD-timing ranking signal (continuous-CAM AUC-ROC)
 
-| Set | Layer | AUC-ROC | 95% CI | Wilcoxon vs. 0.5 |
-|---|---|---|---|---|
-| Development (35 pairs, n=70) | Block 9 | 0.417 ± 0.192 | — | p=0.0023, r=−0.420 (below 0.5) |
-| Development (35 pairs, n=70) | **Block 23** | **0.723 ± 0.149** | [0.687, 0.757] | **p=3.03e-11, r=+0.914 (above 0.5)** |
-| **Held-out replication (65 pairs, n=130)** | **Block 23** | **0.681 ± 0.192** | **[0.647, 0.712]** | **p=8.1e-15, r=+0.786 (above 0.5)** |
-| Held-out replication (65 pairs, n=130) | Block 9 | 0.443 ± 0.174 | [0.412, 0.473] | p=1.2e-03, r=−0.327 (below 0.5) |
+Instance-level (treating the two speakers of each pair as independent) and **pair-level** (averaging the two speakers
+within each pair; Wilcoxon across pairs; bootstrap resamples pairs) — shown side by side. Pair-level is the more
+conservative, assumption-light test because the two instances of a pair share a mixture.
+
+| Set | Layer | Instance AUC | Instance 95% CI / p | **Pair-level AUC** | **Pair 95% CI / p** |
+|---|---|---|---|---|---|
+| Development (35 pairs) | Block 9 | 0.417 ± 0.192 (n=70) | — / p=0.0023 | 0.417 ± 0.105 (n=35) | [0.384, 0.452] / p=8.4e-05 |
+| Development (35 pairs) | **Block 23** | **0.723 ± 0.149** (n=70) | [0.687, 0.757] / p=3.0e-11 | **0.723 ± 0.093** (n=35) | **[0.692, 0.753] / p=5.8e-11** |
+| **Held-out (65 pairs)** | **Block 23** | **0.681 ± 0.192** (n=130) | [0.647, 0.712] / p=8.1e-15 | **0.681 ± 0.130** (n=65) | **[0.649, 0.713] / p=7.4e-11** |
+| Held-out (65 pairs) | Block 9 | 0.443 ± 0.174 (n=130) | [0.412, 0.473] / p=1.2e-03 | 0.443 ± 0.129 (n=65) | [0.412, 0.474] / p=1.5e-03 |
 
 The block-23 VAD-timing ranking signal **replicates on 65 pairs never used in layer or method selection** — AUC
-clearly above 0.5 with a CI that excludes 0.5.
+clearly above 0.5 with a CI that excludes 0.5. The pair-level clustering leaves the conclusion unchanged (held-out
+block 23: p=7.4e-11, r=+0.929 across pairs; block 9 stays below 0.5).
 
 ### Separation (IBM) alignment (orientation-invariant AUC-ROC, n=70)
 
