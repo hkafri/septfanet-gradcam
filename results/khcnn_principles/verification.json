@@ -1,0 +1,87 @@
+{
+  "git": {
+    "head": "048ede1f2f2298231428ebd1c18354f5c88742ea",
+    "new_files_dirty_vs_head": true
+  },
+  "equality_checks": [
+    {
+      "pair_idx": 3,
+      "slot": 1,
+      "frame_existing": 33,
+      "frame_variant": 33,
+      "allclose_1e-6": true,
+      "max_abs_diff": 0.0
+    },
+    {
+      "pair_idx": 22,
+      "slot": 0,
+      "frame_existing": 129,
+      "frame_variant": 129,
+      "allclose_1e-6": true,
+      "max_abs_diff": 0.0
+    },
+    {
+      "pair_idx": 15,
+      "slot": 1,
+      "frame_existing": 64,
+      "frame_variant": 64,
+      "allclose_1e-6": true,
+      "max_abs_diff": 0.0
+    },
+    {
+      "pair_idx": 3,
+      "slot": 1,
+      "frame_existing": 33,
+      "frame_variant": 33,
+      "allclose_1e-6": true,
+      "max_abs_diff": 0.0
+    },
+    {
+      "pair_idx": 7,
+      "slot": 0,
+      "frame_existing": 87,
+      "frame_variant": 87,
+      "allclose_1e-6": true,
+      "max_abs_diff": 0.0
+    }
+  ],
+  "hook_checks": [
+    {
+      "layer": "TCN.TCN.23.conv1d",
+      "slot": 0,
+      "n_hook_calls": 1,
+      "all_zero": false
+    },
+    {
+      "layer": "TCN.TCN.23.conv1d",
+      "slot": 1,
+      "n_hook_calls": 1,
+      "all_zero": false
+    },
+    {
+      "layer": "TCN.output.0",
+      "slot": 0,
+      "n_hook_calls": 1,
+      "all_zero": false
+    },
+    {
+      "layer": "TCN.output.0",
+      "slot": 1,
+      "n_hook_calls": 1,
+      "all_zero": false
+    },
+    {
+      "layer": "vad.common.relu_1",
+      "slot": 0,
+      "n_hook_calls": 2,
+      "all_zero": false
+    },
+    {
+      "layer": "vad.common.relu_1",
+      "slot": 1,
+      "n_hook_calls": 2,
+      "all_zero": false
+    }
+  ],
+  "passed": true
+}

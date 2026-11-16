@@ -1,0 +1,32 @@
+{
+  "git": {
+    "head": "048ede1f2f2298231428ebd1c18354f5c88742ea",
+    "new_files_dirty_vs_head": true
+  },
+  "expected": {
+    "b23_heldout_auc": 0.644,
+    "b23_heldout_ci": [
+      0.613,
+      0.676
+    ],
+    "energy_own": 0.858,
+    "posprior_own": 0.881
+  },
+  "got": {
+    "b23_heldout_auc": 0.6442813863638748,
+    "b23_heldout_ci": [
+      0.6125147019210251,
+      0.6764318547623565
+    ],
+    "energy_own": 0.857991137887696,
+    "posprior_own": 0.880776333649302
+  },
+  "abs_diffs": {
+    "b23_heldout_auc": 0.00028138636387475824,
+    "energy_own": 8.862112303997804e-06,
+    "posprior_own": 0.00022366635069803742
+  },
+  "tolerance": 0.005,
+  "reproduced": true,
+  "note": "Thesis values are the SI-SDR-matched pair-level numbers; the README's older 0.681 is the unmatched number and is not the comparison target."
+}
