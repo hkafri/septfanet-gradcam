@@ -82,6 +82,7 @@ python scripts/evaluate_pair_level.py        # pair-level clustered re-analysis 
 python scripts/evaluate_vad_replication.py   # held-out replication of the block-23 VAD signal
 python scripts/evaluate_robustness_auc.py --subset heldout   # AUC-based robustness (noise + reverberation)
 python scripts/evaluate_robustness_auc.py --subset dev       # same, on the development pairs (secondary)
+python scripts/evaluate_khcnn_principles.py --stage all      # KHCNN-principles port (pre-registered, resumable stages)
 
 # VAD-alignment and separation-alignment diagnostics
 python scripts/evaluate_vad_alignment.py --target-layer TCN.TCN.23.conv1d --output-suffix _block23
@@ -204,6 +205,35 @@ combined condition, inferior at SNR=0 dB — consistent with the held-out set.
 
 *(Superseded: an earlier MAE-vs-uniform-noise robustness table is no longer used — that metric was later shown to be
 uninformative, because sparse maps beat uniform noise trivially. See the investigation log.)*
+
+### KHCNN-principles port (pre-registered, SI-SDR matched, 65 held-out pairs)
+
+A whole-output score and layers near the output, motivated by our KHCNN regression Grad-CAM
+([khcnn-gradcam-nah](https://github.com/hkafri/khcnn-gradcam-nah)), **improved the block-23 ranking AUC from 0.644 to
+0.912** (Δ = +0.268, 95% CI [0.236, 0.299], p = 2.5×10⁻¹²); this is **above the frame-energy baseline (0.858)** and
+the positional prior (0.881). The selected variant V\* = (`mean_all` score, `vad.common.relu_1` layer) was picked on
+the 35 development pairs only; both confirmatory tests were pre-registered at α = 0.025 each (commit `428556f`,
+before any held-out computation). All numbers here use the SI-SDR-matched pair-level pipeline (matched block-23
+baseline 0.644; the 0.681 above is the older unmatched number).
+
+| Variant | Held-out pair AUC [95% CI] | Zero maps | Gate r(map) | Gate r(shift) |
+|---|---|---|---|---|
+| V0 = `single_frame` @ `TCN.TCN.23.conv1d` | 0.644 [0.613, 0.676] | 0.8% | 0.278 | 0.309 (p=0.50, not more faithful) |
+| **V\*** = `mean_all` @ `vad.common.relu_1` | **0.912 [0.901, 0.922]** | 0% | **0.621** | 0.365 (Δ=+0.256 [0.202, 0.309], p=2.6×10⁻¹⁰) |
+
+The second confirmatory test (input-gating faithfulness, the analogue of KHCNN's Eq.-7 masked-input check) **also
+passed** for V\*: gating the raw mixture with the map preserves the network's own VAD logits far better than the same
+map circularly shifted. The **random-network control differs clearly** (random weights: V\* AUC = 0.295, gate
+r(map) = −0.33), so the signal reflects the learned decision path. **However**, the trivial frame-energy map is
+*more* gate-faithful than V\* (r = 0.917 vs 0.621, p = 5.2×10⁻¹⁰), so the V\* map is **not shown to carry
+gate-faithfulness beyond the mixture's energy envelope**, and per the pre-registered wording rule we do **not**
+claim it "explains the decision". Note also that `vad.common.relu_1` sits one small conv away from the VAD logit, so
+a whole-output score there largely re-reads the network's own smoothed decision. Exploratory: every one of the 8
+non-V0 grid cells beats V0 (Holm p ≤ 1.8×10⁻⁹); the literal-KHCNN training-loss score (E4, uses ground truth, its
+AUC is circular and not comparable) explains little; zero-map fractions are ≈0 everywhere, unlike the ~1/3 reported
+by the KHCNN re-implementation (NCC 0.442 / NMSE −2.14 dB vs 0.98 / −13.93 dB in its paper — those principles were a
+hypothesis to test, not a recipe known to work). Full details: `results/khcnn_principles/` and the
+[investigation log](docs/INVESTIGATION_LOG.md) (Phase 9).
 
 ## Methodology (key decisions)
 
