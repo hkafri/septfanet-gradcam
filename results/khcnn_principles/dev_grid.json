@@ -1,0 +1,120 @@
+{
+  "git": {
+    "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+    "new_files_dirty_vs_head": false
+  },
+  "set": "dev (35 pairs, selection only)",
+  "cells": {
+    "single_frame@TCN.TCN.23.conv1d": {
+      "mean": 0.7180810252482169,
+      "ci95": [
+        0.682521379089487,
+        0.751617545558424
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "single_frame@TCN.output.0": {
+      "mean": 0.7870728489105105,
+      "ci95": [
+        0.7756153139703867,
+        0.7984290912875984
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "single_frame@vad.common.relu_1": {
+      "mean": 0.7718002881107471,
+      "ci95": [
+        0.7575214995008647,
+        0.7857321034475936
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@TCN.TCN.23.conv1d": {
+      "mean": 0.8409973436836674,
+      "ci95": [
+        0.8196586492250577,
+        0.8622271043055523
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@TCN.output.0": {
+      "mean": 0.8733414864947078,
+      "ci95": [
+        0.8655182764404239,
+        0.8810735569979491
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@vad.common.relu_1": {
+      "mean": 0.8898270949949232,
+      "ci95": [
+        0.8809856629681192,
+        0.8985775550913441
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@TCN.TCN.23.conv1d": {
+      "mean": 0.8727548301560359,
+      "ci95": [
+        0.8517477599197915,
+        0.8931839716060249
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@TCN.output.0": {
+      "mean": 0.8968490501743948,
+      "ci95": [
+        0.8897761976249154,
+        0.9038385285531352
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@vad.common.relu_1": {
+      "mean": 0.9191180326182281,
+      "ci95": [
+        0.9111539297730619,
+        0.9266523657356607
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    }
+  },
+  "V0": "single_frame@TCN.TCN.23.conv1d",
+  "V_star": "mean_all@vad.common.relu_1",
+  "V_star_rule": "non-V0 cell with the highest development mean AUC; no other tuning"
+}

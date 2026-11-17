@@ -1,0 +1,786 @@
+{
+  "git": {
+    "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+    "new_files_dirty_vs_head": false
+  },
+  "preregistration_commit_of_dev_selection": {
+    "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+    "new_files_dirty_vs_head": false
+  },
+  "V0": "single_frame@TCN.TCN.23.conv1d",
+  "V_star": "mean_all@vad.common.relu_1",
+  "dev_grid": {
+    "single_frame@TCN.TCN.23.conv1d": {
+      "mean": 0.7180810252482169,
+      "ci95": [
+        0.682521379089487,
+        0.751617545558424
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "single_frame@TCN.output.0": {
+      "mean": 0.7870728489105105,
+      "ci95": [
+        0.7756153139703867,
+        0.7984290912875984
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "single_frame@vad.common.relu_1": {
+      "mean": 0.7718002881107471,
+      "ci95": [
+        0.7575214995008647,
+        0.7857321034475936
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@TCN.TCN.23.conv1d": {
+      "mean": 0.8409973436836674,
+      "ci95": [
+        0.8196586492250577,
+        0.8622271043055523
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@TCN.output.0": {
+      "mean": 0.8733414864947078,
+      "ci95": [
+        0.8655182764404239,
+        0.8810735569979491
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@vad.common.relu_1": {
+      "mean": 0.8898270949949232,
+      "ci95": [
+        0.8809856629681192,
+        0.8985775550913441
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@TCN.TCN.23.conv1d": {
+      "mean": 0.8727548301560359,
+      "ci95": [
+        0.8517477599197915,
+        0.8931839716060249
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@TCN.output.0": {
+      "mean": 0.8968490501743948,
+      "ci95": [
+        0.8897761976249154,
+        0.9038385285531352
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@vad.common.relu_1": {
+      "mean": 0.9191180326182281,
+      "ci95": [
+        0.9111539297730619,
+        0.9266523657356607
+      ],
+      "n": 35,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 70,
+      "n_skipped_empty_active": 0
+    }
+  },
+  "PRIMARY_A": {
+    "V0": {
+      "cell": "single_frame@TCN.TCN.23.conv1d",
+      "mean": 0.6442813863638748,
+      "ci95": [
+        0.6125147019210251,
+        0.6764318547623565
+      ],
+      "n": 65,
+      "zero_map_frac": 0.007692307692307693,
+      "n_zero_maps": 1,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "V_star": {
+      "cell": "mean_all@vad.common.relu_1",
+      "mean": 0.9118706782378824,
+      "ci95": [
+        0.901037045785633,
+        0.9215748342066551
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "diff": {
+      "mean": 0.26758929187400754,
+      "ci95": [
+        0.23587914420593958,
+        0.2985805589464961
+      ],
+      "n": 65
+    },
+    "paired_wilcoxon": {
+      "p": 2.520032881866689e-12,
+      "rank_biserial_r": 0.9990675990675991,
+      "n": 65
+    },
+    "alpha": 0.025,
+    "improves": true,
+    "descriptive_vs_energy": {
+      "V_star_minus_energy": {
+        "mean": 0.05387954035018643,
+        "ci95": [
+          0.03427999546332763,
+          0.07361205054192943
+        ],
+        "n": 65
+      },
+      "V0_minus_energy": {
+        "mean": -0.21370975152382113,
+        "ci95": [
+          -0.24591955156325954,
+          -0.18277682730148848
+        ],
+        "n": 65
+      },
+      "energy_own": {
+        "mean": 0.857991137887696,
+        "ci95": [
+          0.838093002399988,
+          0.878174069433073
+        ],
+        "n": 65
+      }
+    },
+    "descriptive_vs_posprior": {
+      "V_star_minus_posprior": {
+        "mean": 0.03109434458858029,
+        "ci95": [
+          0.002235817430984832,
+          0.06034138442897564
+        ],
+        "n": 65
+      },
+      "posprior_own": {
+        "mean": 0.880776333649302,
+        "ci95": [
+          0.8536420389215266,
+          0.9076553132045184
+        ],
+        "n": 65
+      }
+    }
+  },
+  "PRIMARY_B": {
+    "r_map": {
+      "mean": 0.6212250407347143,
+      "ci95": [
+        0.5643058838233407,
+        0.6777597735944049
+      ],
+      "n": 65
+    },
+    "r_shift": {
+      "mean": 0.3649084903324865,
+      "ci95": [
+        0.3335803185519398,
+        0.3959133754656813
+      ],
+      "n": 65
+    },
+    "diff": {
+      "mean": 0.2563165504022277,
+      "ci95": [
+        0.20246049162636667,
+        0.3088919237394105
+      ],
+      "n": 65
+    },
+    "paired_wilcoxon": {
+      "p": 2.5728105186861454e-10,
+      "rank_biserial_r": 0.9020979020979021,
+      "n": 65
+    },
+    "alpha": 0.025,
+    "passes": true
+  },
+  "V0_gate_descriptive": {
+    "r_map": {
+      "mean": 0.27753470692063736,
+      "ci95": [
+        0.2118797072420551,
+        0.34426623636259923
+      ],
+      "n": 65
+    },
+    "r_shift": {
+      "mean": 0.3093107899592049,
+      "ci95": [
+        0.271208099065765,
+        0.3489861689113873
+      ],
+      "n": 65
+    },
+    "diff": {
+      "mean": -0.031776083038567556,
+      "ci95": [
+        -0.09135326887567459,
+        0.028894320517897712
+      ],
+      "n": 65
+    },
+    "paired_wilcoxon": {
+      "p": 0.49466953248043877,
+      "rank_biserial_r": -0.09743589743589744,
+      "n": 65
+    }
+  },
+  "E1_exploratory_holm": {
+    "single_frame@TCN.output.0": {
+      "auc": {
+        "mean": 0.7893140237046284,
+        "ci95": [
+          0.7785217160802448,
+          0.7995020533414774
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 5.704487299008105e-10,
+      "diff_vs_V0": {
+        "mean": 0.14503263734075375,
+        "ci95": [
+          0.11240082747603632,
+          0.1769241300884433
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 1.140897459801621e-09
+    },
+    "single_frame@vad.common.relu_1": {
+      "auc": {
+        "mean": 0.777687665884794,
+        "ci95": [
+          0.7658154472901522,
+          0.7892881642826642
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 1.7943371548218097e-09,
+      "diff_vs_V0": {
+        "mean": 0.1334062795209191,
+        "ci95": [
+          0.10118475168815824,
+          0.16503343406425852
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 1.7943371548218097e-09
+    },
+    "sum_active@TCN.TCN.23.conv1d": {
+      "auc": {
+        "mean": 0.7676853395340708,
+        "ci95": [
+          0.7389374145356401,
+          0.7962346425949405
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 3.840927094379653e-11,
+      "diff_vs_V0": {
+        "mean": 0.12340395317019602,
+        "ci95": [
+          0.0998904084014566,
+          0.1472918880349008
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 1.1522781283138958e-10
+    },
+    "sum_active@TCN.output.0": {
+      "auc": {
+        "mean": 0.8591071473206268,
+        "ci95": [
+          0.8484881686091365,
+          0.8684492015937842
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 4.605614273228896e-12,
+      "diff_vs_V0": {
+        "mean": 0.2148257609567521,
+        "ci95": [
+          0.18279723179064392,
+          0.2462271542649689
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 2.0160263054933512e-11
+    },
+    "sum_active@vad.common.relu_1": {
+      "auc": {
+        "mean": 0.8780119713366393,
+        "ci95": [
+          0.8668569166360669,
+          0.8879616761584308
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 2.6403418557705112e-12,
+      "diff_vs_V0": {
+        "mean": 0.23373058497276455,
+        "ci95": [
+          0.20218779709237228,
+          0.26462895015966525
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 2.0160263054933512e-11
+    },
+    "mean_all@TCN.TCN.23.conv1d": {
+      "auc": {
+        "mean": 0.810606500910847,
+        "ci95": [
+          0.7833155145955603,
+          0.837910238671898
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 3.4898080236750664e-12,
+      "diff_vs_V0": {
+        "mean": 0.16632511454697216,
+        "ci95": [
+          0.1417037165100647,
+          0.1915102610236549
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 2.0160263054933512e-11
+    },
+    "mean_all@TCN.output.0": {
+      "auc": {
+        "mean": 0.8864263941850771,
+        "ci95": [
+          0.875741110395454,
+          0.8960242602439661
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 2.8981005122456075e-12,
+      "diff_vs_V0": {
+        "mean": 0.24214500782120235,
+        "ci95": [
+          0.20976625858133047,
+          0.27342430595360506
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 2.0160263054933512e-11
+    },
+    "mean_all@vad.common.relu_1": {
+      "auc": {
+        "mean": 0.9118706782378824,
+        "ci95": [
+          0.901037045785633,
+          0.9215748342066551
+        ],
+        "n": 65,
+        "zero_map_frac": 0.0,
+        "n_zero_maps": 0,
+        "n_maps": 130,
+        "n_skipped_empty_active": 0
+      },
+      "p_vs_V0_raw": 2.520032881866689e-12,
+      "diff_vs_V0": {
+        "mean": 0.26758929187400754,
+        "ci95": [
+          0.23587914420593958,
+          0.2985805589464961
+        ],
+        "n": 65
+      },
+      "p_vs_V0_holm": 2.0160263054933512e-11
+    }
+  },
+  "E2_exploratory": {
+    "scales": {
+      "minmax": {
+        "r": {
+          "mean": 0.6212250407347143,
+          "ci95": [
+            0.5643058838233407,
+            0.6777597735944049
+          ],
+          "n": 65
+        },
+        "ncc": {
+          "mean": 0.8030942281240618,
+          "ci95": [
+            0.7652183294781165,
+            0.837968984577274
+          ],
+          "n": 65
+        },
+        "nmse_db": {
+          "mean": -6.363677288121572,
+          "ci95": [
+            -7.0330628571542055,
+            -5.687593445851901
+          ],
+          "n": 65
+        },
+        "unchanged_decision_frac": {
+          "mean": 0.8664484451718494,
+          "ci95": [
+            0.843821603927987,
+            0.8869067103109656
+          ],
+          "n": 65
+        }
+      },
+      "max": {
+        "r": {
+          "mean": 0.6212250407347143,
+          "ci95": [
+            0.5643058838233407,
+            0.6777597735944049
+          ],
+          "n": 65
+        },
+        "ncc": {
+          "mean": 0.8030942281240618,
+          "ci95": [
+            0.7652183294781165,
+            0.837968984577274
+          ],
+          "n": 65
+        },
+        "nmse_db": {
+          "mean": -6.363677288121572,
+          "ci95": [
+            -7.0330628571542055,
+            -5.687593445851901
+          ],
+          "n": 65
+        },
+        "unchanged_decision_frac": {
+          "mean": 0.8664484451718494,
+          "ci95": [
+            0.843821603927987,
+            0.8869067103109656
+          ],
+          "n": 65
+        }
+      },
+      "none": {
+        "r": {
+          "mean": 0.19130923722300977,
+          "ci95": [
+            0.13137289188853485,
+            0.25052379121194085
+          ],
+          "n": 65
+        },
+        "ncc": {
+          "mean": 0.5552282078427259,
+          "ci95": [
+            0.5167167780135745,
+            0.5928311197145035
+          ],
+          "n": 65
+        },
+        "nmse_db": {
+          "mean": -1.339607787898146,
+          "ci95": [
+            -1.6569952533781254,
+            -1.0072305368674725
+          ],
+          "n": 65
+        },
+        "unchanged_decision_frac": {
+          "mean": 0.7967266775777413,
+          "ci95": [
+            0.7711538461538463,
+            0.8208674304418985
+          ],
+          "n": 65
+        }
+      }
+    },
+    "nmse_linear_ratio_db": {
+      "minmax": -4.1268760390373425,
+      "max": -4.1268760390373425,
+      "none": -0.8124213006632396
+    }
+  },
+  "E3_exploratory": {
+    "energy_r": {
+      "mean": 0.9172559158480247,
+      "ci95": [
+        0.8743002313126066,
+        0.9506823613556097
+      ],
+      "n": 65
+    },
+    "constant_r": {
+      "mean": 0.7848936718245982,
+      "ci95": [
+        0.7352909698602343,
+        0.829619681469313
+      ],
+      "n": 65
+    },
+    "inverted_r": {
+      "mean": 0.728301305635944,
+      "ci95": [
+        0.6682469955516979,
+        0.7846876448512957
+      ],
+      "n": 65
+    },
+    "permuted_r": {
+      "mean": 0.5428115979004324,
+      "ci95": [
+        0.5050858873960179,
+        0.581795594389737
+      ],
+      "n": 65
+    },
+    "Vstar_vs_energy_paired": {
+      "p": 5.249572396513808e-10,
+      "rank_biserial_r": -0.8862470862470863,
+      "n": 65
+    }
+  },
+  "E4_exploratory_uses_ground_truth": {
+    "note": "the score uses the reference and the clean sources, so this AUC is circular and is NOT comparable with V0 or V*; the map explains the error, not the decision",
+    "loss": {
+      "r_map": {
+        "mean": 0.47706848759837545,
+        "ci95": [
+          0.3944667018060415,
+          0.5568400436245619
+        ],
+        "n": 65
+      },
+      "r_shift": {
+        "mean": 0.4168933618758261,
+        "ci95": [
+          0.34886374074654275,
+          0.48411574645747246
+        ],
+        "n": 65
+      },
+      "auc_circular": {
+        "mean": 0.5170655183052072,
+        "ci95": [
+          0.436686394217561,
+          0.5952685766330555
+        ],
+        "n": 65
+      },
+      "zero_map_frac": 0.0
+    },
+    "negated_loss": {
+      "r_map": {
+        "mean": 0.3893373247701192,
+        "ci95": [
+          0.29759190312884787,
+          0.4823903319177109
+        ],
+        "n": 65
+      },
+      "r_shift": {
+        "mean": 0.45904097453950315,
+        "ci95": [
+          0.40357155489999386,
+          0.515762073711525
+        ],
+        "n": 65
+      },
+      "auc_circular": {
+        "mean": 0.5675163674404534,
+        "ci95": [
+          0.4978602505125604,
+          0.635589057925215
+        ],
+        "n": 65
+      },
+      "zero_map_frac": 0.0
+    },
+    "pit_perm_matches_sisdr_matching_frac": 1.0
+  },
+  "random_network_control": {
+    "git": {
+      "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+      "new_files_dirty_vs_head": false
+    },
+    "V_star": "mean_all@vad.common.relu_1",
+    "note": "SeparationModel re-initialised with torch.manual_seed(0), no checkpoint; slots matched with the random network's own outputs; gate logits from the random network itself. If V* looks the same here, any improvement reflects the input, not the learned decision.",
+    "V0": {
+      "auc": {
+        "mean": 0.5541299703437043,
+        "ci95": [
+          0.5198633740115898,
+          0.5893029143527898
+        ],
+        "n": 65
+      },
+      "r_map": {
+        "mean": 0.4493392217870713,
+        "ci95": [
+          0.38783734647829177,
+          0.5104734030632236
+        ],
+        "n": 65
+      },
+      "r_shift": {
+        "mean": 0.33598689388516606,
+        "ci95": [
+          0.30517574157748545,
+          0.3668253667925861
+        ],
+        "n": 65
+      },
+      "zero_map_frac": 0.0
+    },
+    "Vstar": {
+      "auc": {
+        "mean": 0.2952632208772871,
+        "ci95": [
+          0.2752227480900022,
+          0.31490131780725433
+        ],
+        "n": 65
+      },
+      "r_map": {
+        "mean": -0.33073474014198917,
+        "ci95": [
+          -0.35619062984814454,
+          -0.30470757485772476
+        ],
+        "n": 65
+      },
+      "r_shift": {
+        "mean": 0.39029775783716203,
+        "ci95": [
+          0.3744445686332688,
+          0.40589749657537716
+        ],
+        "n": 65
+      },
+      "zero_map_frac": 0.0
+    }
+  },
+  "power_and_limits": {
+    "sd_of_paired_auc_diffs": 0.1331403732308683,
+    "min_detectable_auc_diff_80pct_power": 0.04623928639903693,
+    "approximation": "2.8*SD/sqrt(65), normal approximation",
+    "limits": [
+      "a non-significant primary A means 'not shown to improve', not 'cannot improve'",
+      "the reference is itself a model (Silero VAD), not hand-labelled ground truth",
+      "about 82% of frames are speech-active",
+      "one dataset (LibriSpeech), 3-second clips",
+      "the maps are time-only (no frequency axis)",
+      "the gate test changes the input distribution: zeroed segments are digital silence"
+    ]
+  },
+  "declared_outcome": [
+    "PRIMARY A (significant): AUC(V*) - AUC(V0) = +0.2676 CI [0.23587914420593958, 0.2985805589464961], p = 2.52e-12 (alpha 0.025)",
+    "PRIMARY B (passes): r(map) - r(shift) = +0.2563 CI [0.20246049162636667, 0.3088919237394105], p = 2.57e-10 (alpha 0.025)"
+  ],
+  "khcnn_caveat": "the source implementation's own re-run reached NCC 0.442 / NMSE -2.14 dB (-0.98 dB linear) vs 0.98 / -13.93 dB in the paper, with ~1/3 of heatmaps entirely zero \u2014 these principles were a hypothesis to test, not a recipe known to work",
+  "E5_exploratory": {
+    "git": {
+      "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+      "new_files_dirty_vs_head": false
+    },
+    "label": "E5 EXPLORATORY: mean of ReLU'd per-frame maps over A_c",
+    "layers": {
+      "TCN.TCN.23.conv1d": {
+        "auc": {
+          "mean": 0.7923653439791482,
+          "ci95": [
+            0.7625170865684078,
+            0.821790454032463
+          ],
+          "n": 65
+        },
+        "zero_map_frac": 0.0
+      },
+      "vad.common.relu_1": {
+        "auc": {
+          "mean": 0.9548375217467827,
+          "ci95": [
+            0.9437526146910116,
+            0.9645085799967356
+          ],
+          "n": 65
+        },
+        "zero_map_frac": 0.0
+      }
+    }
+  }
+}

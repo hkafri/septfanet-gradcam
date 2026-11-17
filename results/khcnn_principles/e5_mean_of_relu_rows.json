@@ -1,0 +1,31 @@
+{
+  "git": {
+    "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+    "new_files_dirty_vs_head": false
+  },
+  "label": "E5 EXPLORATORY: mean of ReLU'd per-frame maps over A_c",
+  "layers": {
+    "TCN.TCN.23.conv1d": {
+      "auc": {
+        "mean": 0.7923653439791482,
+        "ci95": [
+          0.7625170865684078,
+          0.821790454032463
+        ],
+        "n": 65
+      },
+      "zero_map_frac": 0.0
+    },
+    "vad.common.relu_1": {
+      "auc": {
+        "mean": 0.9548375217467827,
+        "ci95": [
+          0.9437526146910116,
+          0.9645085799967356
+        ],
+        "n": 65
+      },
+      "zero_map_frac": 0.0
+    }
+  }
+}

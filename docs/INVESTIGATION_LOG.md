@@ -338,6 +338,104 @@ IBM from the clean sources (the literal signal the mixture was built from).
 
 **Net:** the network separates well, but single-point Grad-CAM carries no measurable IBM alignment. Closed.
 
+## Phase 9 — Porting the KHCNN regression Grad-CAM principles (2026-11-17)
+
+Question: does a Grad-CAM built with the principles of our earlier KHCNN regression Grad-CAM
+(`hkafri/khcnn-gradcam-nah`, `gradcam/run_khcnn_gradcam.py`) — a whole-output score (P1), a layer near the
+output (P2), the standard α-weighted ReLU map (P3), input-masking self-consistency validation (P4), and
+zero-map accounting (P5) — explain Sep-TFAnet-VAD better than the current block-23 single-frame map?
+
+**Caveat carried from the source (kept per the pre-registration):** the KHCNN repo's own faithful
+re-implementation (pretrained weights, noisy test set) reaches mean NCC = 0.442 and NMSE = −2.14 dB
+(−0.98 dB linear) over 7266 samples, versus 0.98 / −13.93 dB in the paper, with about a third of the
+heatmaps entirely zero after the ReLU. The principles were a **hypothesis to test**, not a recipe known
+to work.
+
+Pre-registered script: `scripts/evaluate_khcnn_principles.py` + `gradcam/cam_variants.py`, commit
+**`428556f2affff14f6d766be32dde5e61a2d2c230`**, before any held-out computation (every result JSON records
+HEAD = `428556f` with a clean worktree for the new files). Step 0 reproduced the matched baselines within
+0.005 (block-23 held-out pair AUC 0.6443 vs thesis 0.644 [0.613, 0.676]; energy 0.858; positional prior
+0.881); the Step-1 equality check (variant map ≡ existing `compute_cam`, `atol=1e-6`, 5 random
+instances) and the per-call VAD-hook assertions passed. Artifacts: `results/khcnn_principles/`.
+
+### Selection (35 development pairs, no second round)
+
+3 scores (`single_frame` = V0's z(t*); `sum_active` = Σ z over the network's own active frames;
+`mean_all` = mean of z) × 3 layers (`TCN.TCN.23.conv1d` = current; `TCN.output.0` = last activation
+before the mask head, the direct KHCNN-P2 analogue; `vad.common.relu_1` = last activation of the VAD
+branch). V0 dev AUC = 0.718 (reproduces Phase "matched analysis" exactly);
+**V\* = (`mean_all`, `vad.common.relu_1`), dev AUC = 0.919 [0.911, 0.927]**. Every non-V0 cell was above
+V0 on dev.
+
+### Confirmatory results (65 held-out pairs, α = 0.025 each, Bonferroni for two)
+
+- **Primary A (ranking) — significant.** Pair-level AUC: V0 = 0.6443 [0.613, 0.676] (zero-maps 0.8%),
+  V\* = **0.9119 [0.901, 0.922]** (zero-maps 0%). Δ = **+0.268 [0.236, 0.299]**, paired Wilcoxon
+  p = 2.5e-12 (< 0.025, CI lower bound > 0 → "improves" per the declaration). Descriptive: V\* is above
+  the frame-energy baseline (0.858; Δ = +0.054) and the positional prior (0.881; Δ = +0.031); V0 is far
+  below both (−0.214 vs energy).
+- **Primary B (faithfulness, Eq.-7 analogue) — passes.** Gating the raw mixture with the min–max V\* map
+  (frame-centre interpolation to samples, no re-normalisation, no floor): r(map) = 0.621 [0.564, 0.678]
+  vs r(shift ≥ 20 frames, 20 shifts/pair) = 0.365 [0.334, 0.396]; Δ = +0.256 [0.202, 0.309],
+  p = 2.6e-10. V0's gate test (descriptive): r(map) = 0.278 vs r(shift) = 0.309 — the V0 map is **not**
+  more faithful than its own shifted control (p = 0.495).
+
+### Exploratory (labelled; no claims from these alone)
+
+- **E1 (all 9 cells, held-out):** every non-V0 cell beats V0 (Holm-adjusted p ≤ 1.8e-09); ordering
+  `mean_all` > `sum_active` > `single_frame` and VAD-branch/output layers > block 23. Zero-map fraction
+  ≈ 0 everywhere (vs ~1/3 in the KHCNN re-implementation). No `sum_active` instance had an empty active
+  set.
+- **E2 (scaling, gate test only):** `minmax` and `max` coincide (map minima are 0): r = 0.621,
+  KHCNN-style NCC = 0.803, NMSE = −6.36 dB (mean of per-pair dB) / −4.13 dB (linear ratio of sums),
+  86.6% of hard decisions (z > 0) unchanged. `none` (raw map as gain) degrades everything (r = 0.19,
+  NCC = 0.56, NMSE −1.34/−0.81 dB, 79.7%). For reference, the KHCNN re-run reported NCC 0.442 / −2.14 dB.
+- **E3 (gate-test comparators):** frame-energy map r = **0.917** [0.874, 0.951] — **above V\*** (0.621;
+  paired p = 5.2e-10 in the energy map's favour); constant map (= mean of H) 0.785; inverted 1−H 0.728;
+  random permutation 0.543. **V\* does not beat the energy map in the gate test**, so under the declared
+  discipline the map is not shown to carry gate-faithfulness beyond the energy envelope, and we do
+  **not** write that it "explains the decision".
+- **E4 (literal P1, USES GROUND TRUTH):** score = the training loss (0.99·PIT(−SI-SDR) + 0.01·BCE of the
+  VAD outputs, `BinaryCrossEntropyLoss_Mean` taken verbatim from the upstream repo; the PIT permutation
+  matched the SI-SDR slot matching in 100% of pairs), map at the V\* layer. Gate r(map) = 0.477 vs
+  r(shift) = 0.417; negated loss r(map) = 0.389 vs 0.459 (worse than shifted). AUC = 0.517 (loss) /
+  0.568 (negated) — the score uses the reference, so this AUC is circular and is **not comparable** with
+  V0 or V\*. This map explains the *error*, not the decision, and it explains little of either here.
+- **E5 (`mean_of_relu_rows`):** ReLU-before-averaging over the active frames gives AUC 0.792
+  [0.763, 0.822] at block 23 and 0.955 [0.944, 0.965] at `vad.common.relu_1` (both zero-map-free) —
+  consistent with E1's ordering, exploratory only.
+
+### Sanity controls (Step 5)
+
+Random network (same config, `torch.manual_seed(0)`, no checkpoint, own-output slot matching, own gate
+logits): V0 AUC = 0.554, V\* AUC = **0.295**; V\* gate r(map) = **−0.331** vs r(shift) = +0.390. The
+trained-network results do **not** reproduce under random weights — the V\* signal reflects the learned
+decision path, not the input alone. The Step-1 equality check and per-call hook assertions passed
+(`results/khcnn_principles/verification.json`).
+
+### Power and limits (Step 6)
+
+SD of the paired AUC differences = 0.133; smallest detectable paired difference at 80% power with 65
+pairs ≈ 2.8·SD/√65 = **0.046** (normal approximation) — irrelevant to primary A here (observed +0.268),
+stated for completeness. Limits: the reference is itself a model (Silero on the clean sources), ~82% of
+frames are speech-active, one dataset (LibriSpeech), 3-second clips, time-only maps, and the gate test
+changes the input distribution (zeroed segments are digital silence).
+
+### Interpretation discipline
+
+Primary B passed **and** the random-network control differs, but V\* does **not** beat the energy map in
+E3 — so, per the pre-registered wording rule, we do not claim the map "explains the decision". A further
+honest caveat: `vad.common.relu_1` sits one small conv away from the VAD logit, so a whole-output score
+at that layer largely re-reads the network's own (smoothed) VAD decision; the KHCNN "layer near the
+output" principle improves the ranking AUC precisely by moving the explanation next to the output it
+explains.
+
+**Net:** the two KHCNN principles that transfer (whole-output score, layer near the output) **improved
+the ranking AUC** from 0.644 to 0.912 and produced a map that is causally linked to the network's own
+logits (gate test beats shifted controls; random network inverts it), but the map is **less**
+gate-faithful than the trivial frame-energy envelope, so it is better than V0 **without** being shown to
+explain the decision beyond what mixture energy already does.
+
 ## What's genuinely still open
 
 - Accent diversity (LibriSpeech has no accent labels; needs Common Voice / VCTK).

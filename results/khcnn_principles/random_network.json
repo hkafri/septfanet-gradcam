@@ -1,0 +1,62 @@
+{
+  "git": {
+    "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+    "new_files_dirty_vs_head": false
+  },
+  "V_star": "mean_all@vad.common.relu_1",
+  "note": "SeparationModel re-initialised with torch.manual_seed(0), no checkpoint; slots matched with the random network's own outputs; gate logits from the random network itself. If V* looks the same here, any improvement reflects the input, not the learned decision.",
+  "V0": {
+    "auc": {
+      "mean": 0.5541299703437043,
+      "ci95": [
+        0.5198633740115898,
+        0.5893029143527898
+      ],
+      "n": 65
+    },
+    "r_map": {
+      "mean": 0.4493392217870713,
+      "ci95": [
+        0.38783734647829177,
+        0.5104734030632236
+      ],
+      "n": 65
+    },
+    "r_shift": {
+      "mean": 0.33598689388516606,
+      "ci95": [
+        0.30517574157748545,
+        0.3668253667925861
+      ],
+      "n": 65
+    },
+    "zero_map_frac": 0.0
+  },
+  "Vstar": {
+    "auc": {
+      "mean": 0.2952632208772871,
+      "ci95": [
+        0.2752227480900022,
+        0.31490131780725433
+      ],
+      "n": 65
+    },
+    "r_map": {
+      "mean": -0.33073474014198917,
+      "ci95": [
+        -0.35619062984814454,
+        -0.30470757485772476
+      ],
+      "n": 65
+    },
+    "r_shift": {
+      "mean": 0.39029775783716203,
+      "ci95": [
+        0.3744445686332688,
+        0.40589749657537716
+      ],
+      "n": 65
+    },
+    "zero_map_frac": 0.0
+  }
+}

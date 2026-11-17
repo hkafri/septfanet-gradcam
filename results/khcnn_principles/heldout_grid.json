@@ -1,0 +1,118 @@
+{
+  "git": {
+    "head": "428556f2affff14f6d766be32dde5e61a2d2c230",
+    "new_files_dirty_vs_head": false
+  },
+  "set": "heldout (65 pairs)",
+  "cells": {
+    "single_frame@TCN.TCN.23.conv1d": {
+      "mean": 0.6442813863638748,
+      "ci95": [
+        0.6125147019210251,
+        0.6764318547623565
+      ],
+      "n": 65,
+      "zero_map_frac": 0.007692307692307693,
+      "n_zero_maps": 1,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "single_frame@TCN.output.0": {
+      "mean": 0.7893140237046284,
+      "ci95": [
+        0.7785217160802448,
+        0.7995020533414774
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "single_frame@vad.common.relu_1": {
+      "mean": 0.777687665884794,
+      "ci95": [
+        0.7658154472901522,
+        0.7892881642826642
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@TCN.TCN.23.conv1d": {
+      "mean": 0.7676853395340708,
+      "ci95": [
+        0.7389374145356401,
+        0.7962346425949405
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@TCN.output.0": {
+      "mean": 0.8591071473206268,
+      "ci95": [
+        0.8484881686091365,
+        0.8684492015937842
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "sum_active@vad.common.relu_1": {
+      "mean": 0.8780119713366393,
+      "ci95": [
+        0.8668569166360669,
+        0.8879616761584308
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@TCN.TCN.23.conv1d": {
+      "mean": 0.810606500910847,
+      "ci95": [
+        0.7833155145955603,
+        0.837910238671898
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@TCN.output.0": {
+      "mean": 0.8864263941850771,
+      "ci95": [
+        0.875741110395454,
+        0.8960242602439661
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    },
+    "mean_all@vad.common.relu_1": {
+      "mean": 0.9118706782378824,
+      "ci95": [
+        0.901037045785633,
+        0.9215748342066551
+      ],
+      "n": 65,
+      "zero_map_frac": 0.0,
+      "n_zero_maps": 0,
+      "n_maps": 130,
+      "n_skipped_empty_active": 0
+    }
+  },
+  "label": "E1 (all 9 cells) is EXPLORATORY; only V0 and V* feed the confirmatory tests"
+}
