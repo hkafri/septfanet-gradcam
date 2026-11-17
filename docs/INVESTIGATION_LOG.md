@@ -345,11 +345,12 @@ Question: does a Grad-CAM built with the principles of our earlier KHCNN regress
 output (P2), the standard α-weighted ReLU map (P3), input-masking self-consistency validation (P4), and
 zero-map accounting (P5) — explain Sep-TFAnet-VAD better than the current block-23 single-frame map?
 
-**Caveat carried from the source (kept per the pre-registration):** the KHCNN repo's own faithful
-re-implementation (pretrained weights, noisy test set) reaches mean NCC = 0.442 and NMSE = −2.14 dB
-(−0.98 dB linear) over 7266 samples, versus 0.98 / −13.93 dB in the paper, with about a third of the
-heatmaps entirely zero after the ReLU. The principles were a **hypothesis to test**, not a recipe known
-to work.
+**Caveat (kept per the pre-registration):** the principles were a **hypothesis to test**, not a recipe known to work.
+The numbers of the ICASSP 2023 paper (NCC = 0.98, NMSE = −13.93 dB) belong to another network, task and gate and are
+not comparable to the numbers below. The numbers of a later re-run of the source repository's README are not used in
+this analysis or in the thesis. (The docstring of `scripts/evaluate_khcnn_principles.py` and the `khcnn_caveat` field of
+`results/khcnn_principles/summary.json` quote those re-run numbers as written at pre-registration; they are left
+unchanged on purpose.)
 
 Pre-registered script: `scripts/evaluate_khcnn_principles.py` + `gradcam/cam_variants.py`, commit
 **`428556f2affff14f6d766be32dde5e61a2d2c230`**, before any held-out computation (every result JSON records
@@ -384,12 +385,12 @@ V0 on dev.
 
 - **E1 (all 9 cells, held-out):** every non-V0 cell beats V0 (Holm-adjusted p ≤ 1.8e-09); ordering
   `mean_all` > `sum_active` > `single_frame` and VAD-branch/output layers > block 23. Zero-map fraction
-  ≈ 0 everywhere (vs ~1/3 in the KHCNN re-implementation). No `sum_active` instance had an empty active
+  ≈ 0 everywhere. No `sum_active` instance had an empty active
   set.
 - **E2 (scaling, gate test only):** `minmax` and `max` coincide (map minima are 0): r = 0.621,
   KHCNN-style NCC = 0.803, NMSE = −6.36 dB (mean of per-pair dB) / −4.13 dB (linear ratio of sums),
   86.6% of hard decisions (z > 0) unchanged. `none` (raw map as gain) degrades everything (r = 0.19,
-  NCC = 0.56, NMSE −1.34/−0.81 dB, 79.7%). For reference, the KHCNN re-run reported NCC 0.442 / −2.14 dB.
+  NCC = 0.56, NMSE −1.34/−0.81 dB, 79.7%). For reference, the KHCNN paper reports NCC 0.98 / NMSE −13.93 dB for its own validation (different network, task and gate; not comparable).
 - **E3 (gate-test comparators):** frame-energy map r = **0.917** [0.874, 0.951] — **above V\*** (0.621;
   paired p = 5.2e-10 in the energy map's favour); constant map (= mean of H) 0.785; inverted 1−H 0.728;
   random permutation 0.543. **V\* does not beat the energy map in the gate test**, so under the declared
@@ -474,9 +475,7 @@ there is **no visible band around the diagonal t = τ**, only a weak brightening
   the architecture (depthwise kernels 3 with dilation ≤ 4, TF-attention ±3 frames, VAD-head kernels 5 and 3),
   not the learned decision. Its row-AUC vs the reference is ≈ chance (0.516).
 - Row-level AUC (`gap`, mean over all active rows): own **0.681** [0.660, 0.702], other-speaker **0.688**,
-  union **0.728** — union highest, own ≈ other. Averaging over all decision frames instead of one raises the
-  pair-level AUC vs the single-frame 0.644 by **+0.037** [+0.015, +0.058] (the "average many target frames"
-  future-work item, done per row; exploratory). Random net: 0.490 (chance).
+  union **0.728** — union highest, own ≈ other. The mean over the active decisions of the AUC of each row exceeds the single-frame AUC 0.644 by **+0.037** [+0.015, +0.058]; this is the average of per-row AUCs, not the AUC of the mean map (that is E5 of Phase 9: 0.792 at block 23); exploratory. Random net: 0.490 (chance).
 - Two speakers' maps: Pearson(M_c, M_c') within pair **0.364** [0.308, 0.419] vs **0.025** [0.019, 0.031]
   across pairs (200 partners, padding-matched) — the maps are pair-specific and the two speakers' matrices are
   *not* nearly identical; but since own ≈ other in row-AUC, their differences are not shown to align with who
@@ -495,6 +494,8 @@ decision frame and an architectural (not learned) diagonal in the unpooled varia
 pairs the least explanation-like is the 5th-percentile pick, held-out 47 (single-frame AUC 0.388, per-frame
 row-AUC own 0.526 vs other 0.585 — the maps light up during the other speaker's activity); the 20th-percentile
 pick (held-out 44, single-frame 0.516) partially recovers under per-frame averaging (row-AUC own 0.701).
+
+- Documentation corrected (reference numbers of the KHCNN paper only; wording of the row-AUC averaging).
 
 ## What's genuinely still open
 

@@ -230,9 +230,9 @@ gate-faithfulness beyond the mixture's energy envelope**, and per the pre-regist
 claim it "explains the decision". Note also that `vad.common.relu_1` sits one small conv away from the VAD logit, so
 a whole-output score there largely re-reads the network's own smoothed decision. Exploratory: every one of the 8
 non-V0 grid cells beats V0 (Holm p ≤ 1.8×10⁻⁹); the literal-KHCNN training-loss score (E4, uses ground truth, its
-AUC is circular and not comparable) explains little; zero-map fractions are ≈0 everywhere, unlike the ~1/3 reported
-by the KHCNN re-implementation (NCC 0.442 / NMSE −2.14 dB vs 0.98 / −13.93 dB in its paper — those principles were a
-hypothesis to test, not a recipe known to work). Full details: `results/khcnn_principles/` and the
+AUC is circular and not comparable) explains little; zero-map fractions are ≈0 everywhere. The KHCNN principles were a hypothesis to test on this network, not a recipe
+known to work here; the paper's own validation (NCC 0.98, NMSE −13.93 dB, on a different network, task and gate) is not
+comparable to the numbers in this section. Full details: `results/khcnn_principles/` and the
 [investigation log](docs/INVESTIGATION_LOG.md) (Phase 9).
 
 ### Per-frame decision maps (visual, exploratory)
@@ -285,9 +285,9 @@ Reading, under the pre-declared wording rules:
   row-AUC (0.681 vs 0.688, union 0.728 highest), so the differences between the two speakers' maps are **not
   shown to align with which speaker is talking** — the ranking content remains consistent with tracking overall
   mixture activity.
-- Averaging over all active decision frames instead of a single target frame raises the pair-level AUC from
-  0.644 to 0.681 (paired difference +0.037 [+0.015, +0.058]) — the "average over many target frames"
-  future-work item, evaluated exploratorily.
+- The row-level AUC (own reference, mean over all active decisions of the AUC of each row) is 0.681, which is 0.037
+  above the single-target AUC of 0.644 (paired difference +0.037 [+0.015, +0.058]). This is the average of the AUCs of
+  the individual maps, not the AUC of their mean map; the latter is E5 of the KHCNN-principles section (0.792 at block 23).
 
 ```bash
 python scripts/select_per_frame_pairs.py      # writes the pre-declared selection
