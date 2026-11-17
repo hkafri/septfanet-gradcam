@@ -1,0 +1,97 @@
+{
+  "rule": "Pair selection for the per-frame decision-map figures (Step 2 of the per-frame\nanalysis). The rule below is DECLARED AND COMMITTED BEFORE ANY FIGURE IS LOOKED AT;\na figure chosen after looking at it is an illustration, not evidence.\n\nSELECTION RULE (fixed in advance)\n---------------------------------\nUniverse: the 65 held-out pairs only (rows with set == \"heldout\" in\nresults/slot_matching/matched_analysis_per_pair.csv; pair_index 35..99 in the\nresolve_all_pairs() order), SI-SDR slot matching throughout.\n\n1. Six pairs at the 5/20/40/60/80/95-th percentile of pair-level block-23 AUC\n   (column b23_auc): sort the 65 pairs by b23_auc ascending and take sorted\n   position round(q*(n-1)) for q in {.05, .20, .40, .60, .80, .95}. This\n   includes the worst pairs on purpose.\n2. Two pairs with the largest min(|E_s|, |E_o|), where E_s = v_s & ~v_o and\n   E_o = ~v_s & v_o are the exclusive-activity frame sets of the two Silero\n   reference VADs (computed from the clean sources) -- the only situation where\n   speaker-specificity can be seen by eye. If such a pair is already among the\n   six percentile pairs, the next-largest pair is taken instead, so exactly 8\n   distinct pairs result.\n3. Thesis figure (figures/per_frame_maps_thesis.pdf): of the six AUC-percentile\n   pairs, the one whose b23_auc is closest to the held-out median b23_auc\n   (ties: the lower AUC). No other criterion.\n\nOutput: results/per_frame_maps/selection.json (pair indices + this rule).\nCompute-only; edits nothing else.",
+  "declared": "2026-11-17, before any per-frame figure was generated or viewed",
+  "n_heldout": 65,
+  "median_b23_auc_heldout": 0.6409983505363701,
+  "pairs": [
+    {
+      "heldout_index": 0,
+      "pair_index": 35,
+      "b23_auc": 0.661542351374441,
+      "min_exclusive_frames": 32,
+      "utt_0": "103-1240-0000.flac",
+      "utt_1": "1034-121119-0000.flac",
+      "roles": [
+        "max_exclusive"
+      ]
+    },
+    {
+      "heldout_index": 24,
+      "pair_index": 59,
+      "b23_auc": 0.7674948443856675,
+      "min_exclusive_frames": 12,
+      "utt_0": "3723-171631-0000.flac",
+      "utt_1": "374-180298-0000.flac",
+      "roles": [
+        "auc_p80"
+      ]
+    },
+    {
+      "heldout_index": 31,
+      "pair_index": 66,
+      "b23_auc": 0.657860404435747,
+      "min_exclusive_frames": 32,
+      "utt_0": "4362-15663-0000.flac",
+      "utt_1": "4441-76262-0000.flac",
+      "roles": [
+        "max_exclusive"
+      ]
+    },
+    {
+      "heldout_index": 44,
+      "pair_index": 79,
+      "b23_auc": 0.5160360472860472,
+      "min_exclusive_frames": 0,
+      "utt_0": "5789-57158-0000.flac",
+      "utt_1": "587-41619-0000.flac",
+      "roles": [
+        "auc_p20"
+      ]
+    },
+    {
+      "heldout_index": 47,
+      "pair_index": 82,
+      "b23_auc": 0.388415911247068,
+      "min_exclusive_frames": 30,
+      "utt_0": "6385-220959-0000.flac",
+      "utt_1": "6415-111615-0000.flac",
+      "roles": [
+        "auc_p5"
+      ]
+    },
+    {
+      "heldout_index": 49,
+      "pair_index": 84,
+      "b23_auc": 0.6317674291938997,
+      "min_exclusive_frames": 0,
+      "utt_0": "6531-61334-0000.flac",
+      "utt_1": "6563-63821-0000.flac",
+      "roles": [
+        "auc_p40",
+        "thesis_figure"
+      ]
+    },
+    {
+      "heldout_index": 55,
+      "pair_index": 90,
+      "b23_auc": 0.6838309048674902,
+      "min_exclusive_frames": 6,
+      "utt_0": "7367-86737-0000.flac",
+      "utt_1": "7447-91186-0000.flac",
+      "roles": [
+        "auc_p60"
+      ]
+    },
+    {
+      "heldout_index": 57,
+      "pair_index": 92,
+      "b23_auc": 0.8407664301185591,
+      "min_exclusive_frames": 0,
+      "utt_0": "7780-274562-0000.flac",
+      "utt_1": "78-368-0000.flac",
+      "roles": [
+        "auc_p95"
+      ]
+    }
+  ]
+}

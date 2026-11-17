@@ -1,0 +1,42 @@
+{
+  "description": "per_frame_cam_matrix(variant='gap', sign=+1) vs evaluate_local_transition.compute_cam, 5 random (pair, slot, tau), np.allclose(atol=1e-6)",
+  "layer": "TCN.TCN.23.conv1d",
+  "all_passed": true,
+  "checks": [
+    {
+      "heldout_index": 44,
+      "slot": 0,
+      "tau": 32,
+      "allclose": true,
+      "max_abs_diff": 3.725290298461914e-09
+    },
+    {
+      "heldout_index": 51,
+      "slot": 0,
+      "tau": 150,
+      "allclose": true,
+      "max_abs_diff": 1.862645149230957e-08
+    },
+    {
+      "heldout_index": 62,
+      "slot": 1,
+      "tau": 157,
+      "allclose": true,
+      "max_abs_diff": 2.7939677238464355e-09
+    },
+    {
+      "heldout_index": 46,
+      "slot": 1,
+      "tau": 36,
+      "allclose": true,
+      "max_abs_diff": 3.725290298461914e-09
+    },
+    {
+      "heldout_index": 43,
+      "slot": 0,
+      "tau": 86,
+      "allclose": true,
+      "max_abs_diff": 2.3283064365386963e-09
+    }
+  ]
+}
