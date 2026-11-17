@@ -235,6 +235,66 @@ by the KHCNN re-implementation (NCC 0.442 / NMSE −2.14 dB vs 0.98 / −13.93 d
 hypothesis to test, not a recipe known to work). Full details: `results/khcnn_principles/` and the
 [investigation log](docs/INVESTIGATION_LOG.md) (Phase 9).
 
+### Per-frame decision maps (visual, exploratory)
+
+**Everything in this subsection is exploratory — there is no confirmatory test.** Instead of one map per
+speaker per clip (target `t* = argmax|z|`), a separate block-23 map is computed for *every* frame τ where the
+network decides "speaker c is active" (target z_c(τ); decisions "inactive" are explained with −z_c(τ) and shown
+as a separate row block), and the maps are stacked into a matrix M_c[τ, t] (decision time × map position).
+Scripts: `scripts/per_frame_cam.py` (equivalence-checked against the existing `compute_cam`, 5/5 `allclose`,
+atol 1e-6), `scripts/select_per_frame_pairs.py`, `scripts/evaluate_per_frame_maps.py`,
+`scripts/visualize_per_frame_maps.py`. Scope: **8 pairs by a declared rule for the figures, 65 held-out pairs
+for the numbers, one reference (Silero), one layer (`TCN.TCN.23.conv1d`)**, SI-SDR matching throughout.
+
+**Pair-selection rule** (declared and committed *before* any figure was generated;
+`results/per_frame_maps/selection.json`): 6 pairs at the 5/20/40/60/80/95-th percentile of pair-level block-23
+AUC (worst pairs included on purpose) + 2 pairs with the largest exclusive-activity count min(|E_s|, |E_o|);
+the thesis figure (`figures/per_frame_maps_thesis.pdf`) uses the percentile pair closest to the held-out median
+AUC. Per pair: the matrix figure (per-row min–max, and a `_raw` global-scale version), a two-speaker
+side-by-side figure on one colour scale, and a random-weights-control version (`_random`), all in
+`results/per_frame_maps/`.
+
+**What the figures show**: the matrices are dominated by *column* structure — the map barely changes with the
+decision frame τ; there is no band around the diagonal t = τ, only a weak brightening near it.
+
+Numbers (pair-level means over the 65 held-out pairs, 95% pair-bootstrap CIs; active-decision rows):
+
+| Quantity (variant `gap` = thesis method) | Trained net [95% CI] | Chance / control |
+|---|---|---|
+| Locality L₅ (map mass within ±5 of τ) | 0.097 [0.093, 0.101] | uniform 0.058; shifted rows 0.058; **random weights 0.061** |
+| Locality L₁₀ | 0.164 [0.158, 0.171] | uniform 0.110; shifted 0.110; **random weights 0.110** |
+| Locality L₁₀, variant `gradact` (no time pooling) | 0.624 [0.612, 0.637] | **random weights 0.842** — larger than trained |
+| Row-AUC vs own reference v_c | 0.681 [0.660, 0.702] | random weights 0.490 |
+| Row-AUC vs other speaker v_c′ | 0.688 [0.670, 0.706] | — |
+| Row-AUC vs union v_c ∪ v_c′ | 0.728 [0.713, 0.743] | — |
+| Row-AUC (own) − single-frame AUC (0.644), paired | +0.037 [+0.015, +0.058] | — |
+| Pearson(M_c, M_c′) within pair | 0.364 [0.308, 0.419] | across pairs 0.025 [0.019, 0.031] |
+| Locality L₁₀ / row-AUC by \|z\| tercile (low→high) | 0.137→0.195 / 0.671→0.690 | random weights flat |
+
+Reading, under the pre-declared wording rules:
+
+- The per-frame `gap` maps are only **weakly concentrated near the decision frame** (0.164 vs 0.110 at W=10);
+  weak as it is, this concentration **is not explained by the architecture alone** (random-weights control
+  exactly at chance, 0.110; difference +0.054 [+0.047, +0.062]).
+- For the unpooled `gradact` variant, the concentration near the decision frame **is also present — and
+  stronger — in a randomly initialised network** (0.842 vs 0.624) **and therefore reflects the architecture**
+  (depthwise kernels 3 with dilation ≤ 4, TF-attention ±3 frames, VAD-head kernels 5 and 3), not the learned
+  decision; its row-AUC is ≈ chance (0.516).
+- The two speakers' maps are **not** nearly identical (within-pair correlation 0.364 vs 0.025 across pairs — the
+  maps carry pair-specific structure); however, the own-speaker row-AUC does not exceed the other-speaker
+  row-AUC (0.681 vs 0.688, union 0.728 highest), so the differences between the two speakers' maps are **not
+  shown to align with which speaker is talking** — the ranking content remains consistent with tracking overall
+  mixture activity.
+- Averaging over all active decision frames instead of a single target frame raises the pair-level AUC from
+  0.644 to 0.681 (paired difference +0.037 [+0.015, +0.058]) — the "average over many target frames"
+  future-work item, evaluated exploratorily.
+
+```bash
+python scripts/select_per_frame_pairs.py      # writes the pre-declared selection
+python scripts/evaluate_per_frame_maps.py     # matrices cache + exploratory numbers (real + random nets)
+python scripts/visualize_per_frame_maps.py    # 8-pair figures + figures/per_frame_maps_thesis.pdf
+```
+
 ## Methodology (key decisions)
 
 - **Pre-sigmoid VAD logit** (not the saturating post-sigmoid probability) as the Grad-CAM target, exposed as

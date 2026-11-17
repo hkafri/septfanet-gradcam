@@ -436,6 +436,66 @@ logits (gate test beats shifted controls; random network inverts it), but the ma
 gate-faithful than the trivial frame-energy envelope, so it is better than V0 **without** being shown to
 explain the decision beyond what mixture energy already does.
 
+## Phase 10 — Per-frame decision maps (visual, exploratory) (2026-11-17)
+
+Everything so far explained ONE decision per speaker per clip (the logit at t\* = argmax|z|) and compared that
+single block-23 map against *all* active frames — which is not what "for each decision, the map that supports
+it" describes, and cannot show by eye whether Grad-CAM tracks the network's decisions over time. This phase is
+**visual and mostly descriptive**; there is **no confirmatory test**, every number is exploratory.
+
+**Method** ([scripts/per_frame_cam.py](../scripts/per_frame_cam.py)): for every frame τ, a separate map with
+target z_c(τ) (one forward pass, non-detaching forward hook, `torch.autograd.grad` per τ), stacked into a
+matrix M_c[τ, t] (decision time × map position). Decisions "active" (z>0) are explained with +z, decisions
+"inactive" (z<0) with −z (the `--negate-loss` idea of the KHCNN regression port); the two row blocks are kept
+separate. Variants: `gap` (the thesis method, gradient pooled over time) and `gradact` (exploratory, no time
+pooling — keeps *where in time the gradient lives*). **Equivalence check first**: `gap`/sign=+1 reproduced
+`compute_cam` of `evaluate_local_transition.py` on 5 random (pair, slot, τ), all `allclose(atol=1e-6)`, max
+|diff| ≤ 2e-8 (`results/per_frame_maps/equivalence_check.json`).
+
+**Pair selection declared and committed BEFORE any figure was generated** (commit 138b16b;
+[scripts/select_per_frame_pairs.py](../scripts/select_per_frame_pairs.py)): 6 held-out pairs at the
+5/20/40/60/80/95-th percentile of b23_auc (the worst pairs included on purpose) + 2 pairs with the largest
+min(|E_s|, |E_o|) exclusive-activity count; thesis-figure pair = the percentile pair closest to the held-out
+median AUC (held-out 49, AUC 0.632). Figures: 8 pairs by this rule; numbers: all 65 held-out pairs, SI-SDR
+matched, pair-level means with 95% pair-bootstrap CIs; one reference (Silero), one layer (TCN.TCN.23.conv1d).
+
+**What the matrices show** (figures in `results/per_frame_maps/`, matrices in `matrices_heldout*.npz`):
+the `gap` matrices are dominated by **column structure** — the map barely changes with the decision frame τ;
+there is **no visible band around the diagonal t = τ**, only a weak brightening near it.
+
+**Numbers** (`results/per_frame_maps/per_frame_summary.json`, active-decision rows, pair-level):
+
+- Locality L_W = in-window map mass fraction, `gap`: W=5 **0.097** [0.093, 0.101] vs uniform 0.058, circular
+  shift 0.058; W=10 **0.164** [0.158, 0.171] vs uniform/shift 0.110. **Random-weights control (seed 0, no
+  checkpoint): 0.061 / 0.110 — at chance.** The weak concentration is small in absolute terms but is not
+  produced by the architecture alone.
+- Locality `gradact`: W=10 real **0.624**, random **0.842** (chance 0.110) — the gradient-in-time
+  concentration near τ is **stronger in the randomly initialised network**, so the `gradact` diagonal reflects
+  the architecture (depthwise kernels 3 with dilation ≤ 4, TF-attention ±3 frames, VAD-head kernels 5 and 3),
+  not the learned decision. Its row-AUC vs the reference is ≈ chance (0.516).
+- Row-level AUC (`gap`, mean over all active rows): own **0.681** [0.660, 0.702], other-speaker **0.688**,
+  union **0.728** — union highest, own ≈ other. Averaging over all decision frames instead of one raises the
+  pair-level AUC vs the single-frame 0.644 by **+0.037** [+0.015, +0.058] (the "average many target frames"
+  future-work item, done per row; exploratory). Random net: 0.490 (chance).
+- Two speakers' maps: Pearson(M_c, M_c') within pair **0.364** [0.308, 0.419] vs **0.025** [0.019, 0.031]
+  across pairs (200 partners, padding-matched) — the maps are pair-specific and the two speakers' matrices are
+  *not* nearly identical; but since own ≈ other in row-AUC, their differences are not shown to align with who
+  is speaking.
+- |z| terciles: locality (gap, W=10) 0.137 → 0.161 → 0.195 and row-AUC(own) 0.671 → 0.681 → 0.690 from least
+  to most confident decisions; flat for the random network.
+
+**Engineering note**: ~10⁵ `sklearn.roc_auc_score` calls crashed with a native Windows access violation
+(numpy `errstate.__enter__`); row AUCs therefore use a tie-aware Mann–Whitney rank AUC, checked identical to
+`safe_auc` on 50 random rows at startup. The vmap-batched gradient path was measured slower than the plain
+per-τ `autograd.grad` loop on CPU (6.9 s vs 0.75 s per 188 frames) and is kept only as an option.
+
+**Net:** per-frame maps change little over decision time; the thesis-method map is close to a clip-level
+template that ranks overall speech activity (union AUC highest), with a weak, learned concentration near the
+decision frame and an architectural (not learned) diagonal in the unpooled variant. Among the 8 declared
+pairs the least explanation-like is the 5th-percentile pick, held-out 47 (single-frame AUC 0.388, per-frame
+row-AUC own 0.526 vs other 0.585 — the maps light up during the other speaker's activity); the 20th-percentile
+pick (held-out 44, single-frame 0.516) partially recovers under per-frame averaging (row-AUC own 0.701).
+
 ## What's genuinely still open
 
 - Accent diversity (LibriSpeech has no accent labels; needs Common Voice / VCTK).
